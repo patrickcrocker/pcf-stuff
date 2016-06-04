@@ -1,4 +1,10 @@
 #!/bin/bash
+#
+# Pivotal Network Product Tile Download Script
+#
+# Usage:
+# $ ./pivnet-download.sh <pivnet-product-api-download-url>
+#
 
 set -e
 
