@@ -2,6 +2,16 @@
 #
 # Pivotal Network Product Tile Download Script
 #
+# This script is intended to be run from the Ops Manager VM to download a Pivotal 
+# product file.  Before running this script you must accept the End User License Agreement.
+# This is done by logging into Pivnet and downloading the product which will prompt 
+# you to accept the EULA.  After you have agreed, you can cancel the download and 
+# then use this script!
+#
+# You'll need your Pivnet API token which can be found on the 'Edit Profile' page 
+# on Pivnet.  For convenience, you can export this as an environment variable:
+# $ export PIVNET_TOKEN=<pivnetApiToken>
+#
 # Usage:
 # $ ./pivnet-download.sh <pivnet-product-api-download-url>
 #
