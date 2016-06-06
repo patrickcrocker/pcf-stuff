@@ -5,11 +5,11 @@
 # This script is intended to be run from the Ops Manager VM to upload a local .pivotal 
 # product file.  This script needs a UAA access token for authentication.
 #
-# To install the client run:
+# To install the client run (this is probably already installed):
 # $ gem install cf-uaac 
 #
 # Use the client to target UAA and generate a token:
-# $ uaac target https://localhost/uaa
+# $ uaac target https://localhost/uaa --skip-ssl-validation
 # $ uaac token owner get
 #   Client name: opsman
 #   Client secret: <empty>
@@ -17,7 +17,7 @@
 #   Password: <opsMgrPassword>
 #
 # To view the access_token run:
-# $ uaac context <opsMgrUserName>
+# $ uaac context <opsMgrUserName> | grep access_token
 # 
 # You can either directly cut-and-paste the token when this script requests it
 # or you can export it as a variable:
