@@ -14,7 +14,7 @@ sudo apt-get -y install python-pip
 sudo pip install docker-compose
 
 # Install htpasswd (which we won't actually need 'cause we are going un-authenticated)
-sudo apt-get -y install apache2-utils
+#sudo apt-get -y install apache2-utils
 
 # Setup the folders
 sudo mkdir -p /opt/docker-registry/data
@@ -22,13 +22,13 @@ sudo mkdir /opt/docker-registry/nginx
 
 # Setup ssl
 cd /opt/docker-registry/nginx
-sudo openssl genrsa -out devdockerCA.key 2048
-sudo openssl req -x509 -new -nodes -key devdockerCA.key -days 10000 -out devdockerCA.crt \
+sudo openssl genrsa -out root-key.pem 2048
+sudo openssl req -x509 -new -nodes -key root-key.pem -days 10000 -out root-ca.pem \
   -subj "/C=US/ST=California/L=Palo Alto/O=Pivotal Software, Inc./OU=Pivotal Demos/CN=Pivotal Demos Root CA/emailAddress=pcrocker@pivotal.io"
-sudo openssl genrsa -out domain.key 2048
-sudo openssl req -new -key domain.key -out dev-docker-registry.com.csr \
+sudo openssl genrsa -out server-key.pem 2048
+sudo openssl req -new -key server-key.pem -out server-csr.pem \
   -subj "/C=US/ST=California/L=Palo Alto/O=Pivotal Software, Inc./OU=Pivotal Demos/CN=docker.anvil.pcfdemo.com/emailAddress=pcrocker@pivotal.io"
-sudo openssl x509 -req -in dev-docker-registry.com.csr -CA devdockerCA.crt -CAkey devdockerCA.key -CAcreateserial -out domain.crt -days 10000
+sudo openssl x509 -req -in server-csr.pem -CA root-ca.pem -CAkey root-key.pem -CAcreateserial -out server-crt.pem -days 10000
 
 # Update localhost certs
 sudo mkdir /usr/local/share/ca-certificates/docker-dev-cert
@@ -38,9 +38,9 @@ sudo service docker restart
 
 # Create configs
 
-sudo bash -c "cat >/opt/docker-registry/docker-compose.yml <<EOF
+cat <<'EOF' | sudo tee /opt/docker-registry/docker-compose.yml
 nginx:
-  image: \"nginx:1.9\"
+  image: "nginx:1.9"
   ports:
     - 443:443
   links:
@@ -55,9 +55,10 @@ registry:
     REGISTRY_STORAGE_FILESYSTEM_ROOTDIRECTORY: /data
   volumes:
     - ./data:/data
-EOF"
+EOF
 
-sudo bash -c "cat >/opt/docker-registry/nginx/registry.conf <<EOF
+
+cat <<'EOF' | sudo tee /opt/docker-registry/nginx/registry.conf
 upstream docker-registry {
   server registry:5000;
 }
@@ -79,28 +80,28 @@ server {
 
   location /v2/ {
     # Do not allow connections from docker 1.5 and earlier
-    # docker pre-1.6.0 did not properly set the user agent on ping, catch \"Go *\" user agents
-    if (\\\$http_user_agent ~ \"^(docker\/1\.(3|4|5(?!\.[0-9]-dev))|Go ).*\\\$\" ) {
+    # docker pre-1.6.0 did not properly set the user agent on ping, catch "Go *" user agents
+    if ($http_user_agent ~ "^(docker\/1\.(3|4|5(?!\.[0-9]-dev))|Go ).*$" ) {
       return 404;
     }
 
     # To add basic authentication to v2 use auth_basic setting plus add_header
-    # auth_basic \"registry.localhost\";
+    # auth_basic "registry.localhost";
     # auth_basic_user_file /etc/nginx/conf.d/registry.password;
     # add_header 'Docker-Distribution-Api-Version' 'registry/2.0' always;
 
     proxy_pass                          http://docker-registry;
-    proxy_set_header  Host              \\\$http_host;   # required for docker client's sake
-    proxy_set_header  X-Real-IP         \\\$remote_addr; # pass on real client's IP
-    proxy_set_header  X-Forwarded-For   \\\$proxy_add_x_forwarded_for;
-    proxy_set_header  X-Forwarded-Proto \\\$scheme;
+    proxy_set_header  Host              $http_host;   # required for docker client's sake
+    proxy_set_header  X-Real-IP         $remote_addr; # pass on real client's IP
+    proxy_set_header  X-Forwarded-For   $proxy_add_x_forwarded_for;
+    proxy_set_header  X-Forwarded-Proto $scheme;
     proxy_read_timeout                  900;
   }
 }
-EOF"
+EOF
 
-sudo bash -c "cat >/etc/init/docker-registry.conf <<EOF
-description \"Docker Registry\"
+cat <<'EOF' | sudo tee /etc/init/docker-registry.conf
+description "Docker Registry"
 
 start on runlevel [2345]
 stop on runlevel [016]
@@ -111,7 +112,7 @@ respawn limit 10 5
 chdir /opt/docker-registry
 
 exec /usr/local/bin/docker-compose up
-EOF"
+EOF
 
 # Start the service
 sudo service docker-registry start
