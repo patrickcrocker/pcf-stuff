@@ -1,8 +1,10 @@
 #!/bin/bash
-#Private Docker Registry
+
+# Private Docker Registry script base on:
 # https://www.digitalocean.com/community/tutorials/how-to-set-up-a-private-docker-registry-on-ubuntu-14-04
 
-# Launch Ubuntu 14.04 AMI on AWS
+# AWS: Ubuntu trust 14.04 LTS amd64 hvm:ebs-ssd
+# https://console.aws.amazon.com/ec2/home?region=us-east-1#launchAmi=ami-8e0b9499
 
 # Install Docker
 wget -qO- https://get.docker.com/ | sh
@@ -22,19 +24,20 @@ sudo mkdir /opt/docker-registry/nginx
 
 # Setup ssl
 cd /opt/docker-registry/nginx
-sudo openssl genrsa -out root-key.pem 2048
-sudo openssl req -x509 -new -nodes -key root-key.pem -days 10000 -out root-ca.pem \
+sudo openssl genrsa -out root-ca.key 2048
+sudo openssl req -x509 -new -nodes -key root-ca.key -days 10000 -out root-ca.crt \
   -subj "/C=US/ST=California/L=Palo Alto/O=Pivotal Software, Inc./OU=Pivotal Demos/CN=Pivotal Demos Root CA/emailAddress=pcrocker@pivotal.io"
-sudo openssl genrsa -out server-key.pem 2048
-sudo openssl req -new -key server-key.pem -out server-csr.pem \
+sudo openssl genrsa -out server.key 2048
+sudo openssl req -new -key server.key -out server.csr \
   -subj "/C=US/ST=California/L=Palo Alto/O=Pivotal Software, Inc./OU=Pivotal Demos/CN=docker.anvil.pcfdemo.com/emailAddress=pcrocker@pivotal.io"
-sudo openssl x509 -req -in server-csr.pem -CA root-ca.pem -CAkey root-key.pem -CAcreateserial -out server-crt.pem -days 10000
+sudo openssl x509 -req -in server.csr -CA root-ca.crt -CAkey root-ca.key -CAcreateserial -out server.crt -days 10000
 
 # Update localhost certs
-sudo mkdir /usr/local/share/ca-certificates/docker-dev-cert
-sudo cp devdockerCA.crt /usr/local/share/ca-certificates/docker-dev-cert
+sudo mkdir /usr/local/share/ca-certificates/docker-registry
+sudo cp root-ca.crt /usr/local/share/ca-certificates/docker-registry
 sudo update-ca-certificates
 sudo service docker restart
+# you may need to logout and then log back in before running `docker push`
 
 # Create configs
 
@@ -57,7 +60,6 @@ registry:
     - ./data:/data
 EOF
 
-
 cat <<'EOF' | sudo tee /opt/docker-registry/nginx/registry.conf
 upstream docker-registry {
   server registry:5000;
@@ -69,8 +71,8 @@ server {
 
   # SSL
   ssl on;
-  ssl_certificate /etc/nginx/conf.d/domain.crt;
-  ssl_certificate_key /etc/nginx/conf.d/domain.key;
+  ssl_certificate /etc/nginx/conf.d/server.crt;
+  ssl_certificate_key /etc/nginx/conf.d/server.key;
 
   # disable any limits to avoid HTTP 413 for large image uploads
   client_max_body_size 0;
@@ -116,5 +118,3 @@ EOF
 
 # Start the service
 sudo service docker-registry start
-
-# sudo tail -f /var/log/upstart/docker-registry.log
