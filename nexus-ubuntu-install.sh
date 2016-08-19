@@ -55,6 +55,19 @@ sudo rm /etc/nginx/sites-enabled/default
 
 cat <<'EOF' | sudo tee /etc/nginx/sites-available/nexus.conf
 server {
+  listen               *:80;
+  server_name          nexus.anvil.pcfdemo.com;
+
+  # Nexus web app
+  location / {
+    proxy_pass                          http://localhost:8081;
+    proxy_set_header  Host              $host;   # required for docker client's sake
+    proxy_set_header  X-Real-IP         $remote_addr; # pass on real client's IP
+    proxy_set_header  X-Forwarded-For   $proxy_add_x_forwarded_for;
+    proxy_read_timeout                  900;
+  }
+}
+server {
   listen               *:443 ssl;
   server_name          nexus.anvil.pcfdemo.com;
   ssl_certificate      ssl/server.crt;
@@ -66,38 +79,13 @@ server {
   # required to avoid HTTP 411: see Issue #1486 (https://github.com/docker/docker/issues/1486)
   chunked_transfer_encoding on;
 
-  # Nexus web app
-  location / {
-    proxy_pass                          http://localhost:8081;
-    proxy_set_header  Host              $http_host;   # required for docker client's sake
-    proxy_set_header  X-Real-IP         $remote_addr; # pass on real client's IP
-    proxy_set_header  X-Forwarded-For   $proxy_add_x_forwarded_for;
-    proxy_set_header  X-Forwarded-Proto $scheme;
-    proxy_read_timeout                  900;
-  }
-
-  # Empty JSON file to satisfy Cloud Foundry's need to have GET /v2/ return an empty json string
-  root /home/ubuntu/www;
-
-  # This does two things:
-  # 1. Disables Nexus authentication on /v2/
-  # 2. Rewrite URI to /v2/empty.json
-  location = /v2/ {
-    index empty.json;
-  }
-
-  # Match the re-written URI to serve our static empty.json file
-  location = /v2/empty.json {
-  }
-
   # Everything else gets proxied to Nexus
-  location /v2/ {
+  location / {
     proxy_pass                          http://localhost:5000;
-    proxy_set_header  Host              $http_host;   # required for docker client's sake
+    proxy_set_header  Host              $host;   # required for docker client's sake
     proxy_set_header  X-Real-IP         $remote_addr; # pass on real client's IP
     proxy_set_header  X-Forwarded-For   $proxy_add_x_forwarded_for;
-    proxy_set_header  X-Forwarded-Proto $scheme;
-    # This is the default Nexus admin credentials, change as appropriate!
+    proxy_set_header  X-Forwarded-Proto "https";
     proxy_set_header  Authorization     "Basic YWRtaW46YWRtaW4xMjM=";
     proxy_read_timeout                  900;
   }
