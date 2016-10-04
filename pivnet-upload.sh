@@ -16,12 +16,8 @@
 #   User name: <opsMgrUserName>
 #   Password: <opsMgrPassword>
 #
-# To view the access_token run:
-# $ uaac context <opsMgrUserName> | grep access_token
-# 
-# You can either directly cut-and-paste the token when this script requests it
-# or you can export it as a variable:
-# $ export UAA_ACCESS_TOKEN=<access_token-from-uaac-context-output>
+# Export UAA access token variable:
+# $ export UAA_ACCESS_TOKEN=$(uaac context <opsMgrUserName> | grep access_token | awk '{ print $2 }')
 #
 # If UAAC isn't available use the following KB to try CURL:
 # *Use at your own risk!*
