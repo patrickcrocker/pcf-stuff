@@ -1,4 +1,0 @@
-export D=/var/tempest/workspaces/default/deployments
-
-export PIVNET_TOKEN=
-export UAA_ACCESS_TOKEN=
