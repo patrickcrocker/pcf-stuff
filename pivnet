@@ -1,0 +1,63 @@
+#!/bin/bash
+
+PIVNETRC=~/.pivnetrc
+
+if [ -f "$PIVNETRC" ]; then
+  chmod 400 $PIVNETRC
+  source $PIVNETRC 2>/dev/null
+fi
+
+set -e
+
+usage_and_exit() {
+  cat <<EOF
+Usage: pivnet <command> [options]
+Examples:
+  pivnet token SAMPLEaJimQVTq2zWBYZ
+  pivnet download https://network.pivotal.io/.../product_files/7509/download
+EOF
+  exit 1
+}
+
+error_and_exit() {
+  echo "$1" && exit 1
+}
+
+set_token() {
+  [ -f "$PIVNETRC" ] && chmod 600 $PIVNETRC
+  echo "PIVNET_API_TOKEN=$1" > $HOME/.pivnetrc
+  chmod 400 $PIVNETRC
+  echo "Updated Pivotal Network API Token"
+}
+
+download_from_pivnet() {
+  local PIVNET_API_TOKEN=$PIVNET_API_TOKEN
+  if [ -z "$PIVNET_API_TOKEN" ]; then
+    read -r -p "Pivnet API Token: " PIVNET_API_TOKEN
+  fi
+
+  local DOWNLOAD_URL=$1
+  if [ -z "$DOWNLOAD_URL" ]; then
+    read -r -p "Remote file URL: " DOWNLOAD_URL
+  fi
+
+  # Get the filename from the redirect
+  local FILENAME=$(curl -s --data '' -D- -o /dev/null -H "Authorization: Token $PIVNET_API_TOKEN" $DOWNLOAD_URL | grep -o -E 'filename=.*$' | sed -e 's/filename=//' | sed 's/\r$//')
+
+  echo "Downloading $FILENAME from $DOWNLOAD_URL"
+
+  curl -o $FILENAME \
+    -L --data '' \
+    -H "Authorization: Token $PIVNET_API_TOKEN" \
+    $DOWNLOAD_URL
+}
+
+CMD=$1 ARG=$2
+
+if [ "token" = "$CMD" ]; then
+  set_token $ARG
+elif [ "download" = "$CMD" ]; then
+  download_from_pivnet $ARG
+else
+  usage_and_exit
+fi
