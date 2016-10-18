@@ -58,6 +58,9 @@ server {
   listen               *:80;
   server_name          nexus.anvil.pcfdemo.com;
 
+  # disable any limits to avoid HTTP 413 for large image uploads
+  client_max_body_size 0;
+
   # Nexus web app
   location / {
     proxy_pass                          http://localhost:8081;
@@ -78,6 +81,15 @@ server {
 
   # required to avoid HTTP 411: see Issue #1486 (https://github.com/docker/docker/issues/1486)
   chunked_transfer_encoding on;
+
+  location /repository {
+    proxy_pass                          http://localhost:8081;
+    proxy_set_header  Host              $host;   # required for docker client's sake
+    proxy_set_header  X-Real-IP         $remote_addr; # pass on real client's IP
+    proxy_set_header  X-Forwarded-For   $proxy_add_x_forwarded_for;
+    proxy_set_header  X-Forwarded-Proto "https";
+    proxy_read_timeout                  900;
+  }
 
   # Everything else gets proxied to Nexus
   location / {
