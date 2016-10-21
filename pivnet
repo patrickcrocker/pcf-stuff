@@ -35,8 +35,10 @@ download_from_pivnet() {
   if [ -z "$PIVNET_API_TOKEN" ]; then
     read -r -p "Pivnet API Token: " PIVNET_API_TOKEN
 
-    local SAVE_TOKEN=y
+    local SAVE_TOKEN=
     read -r -p "Save token for future use? [Y/n]: " SAVE_TOKEN
+    # Default to yes
+    SAVE_TOKEN=${SAVE_TOKEN:-y}
     # to-lowercase
     SAVE_TOKEN=${SAVE_TOKEN,,}
     if [ "$SAVE_TOKEN" == "y" ]; then
