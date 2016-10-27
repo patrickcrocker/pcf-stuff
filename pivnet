@@ -51,21 +51,44 @@ download_from_pivnet() {
     read -r -p "Remote file URL: " DOWNLOAD_URL
   fi
 
-  # Test the URL
+  # Hit the download URL but don't follow the redirect just yet so we can validate
+  # the response codes and get the filename from the Location header
   local OUTPUT=$(curl -s --data '' -D- -o /dev/null -H "Authorization: Token $PIVNET_API_TOKEN" $DOWNLOAD_URL)
+
   if echo "$OUTPUT" | grep -q 'Status: 401'; then
-    error_and_exit "Invalid token"
+    error_and_exit "User could not be authenticated. Invalid token: $PIVNET_API_TOKEN"
+  elif echo "$OUTPUT" | grep -q 'Status: 403'; then
+    error_and_exit "User does not have access to download files from this release."
   elif echo "$OUTPUT" | grep -q 'Status: 404'; then
-    error_and_exit "Invalid Download URL"
+    error_and_exit "The product or release cannot be found. Invalid Download URL: $DOWNLOAD_URL"
   elif echo "$OUTPUT" | grep -q 'Status: 451'; then
-    error_and_exit "EULA Not Accepted"
-  elif echo "$OUTPUT" | grep -q 'Status: 302'; then
-    echo "It Works!"
+
+    echo "User has not accepted the current EULA for this release."
+    local ACCEPT_EULA=
+    read -r -p "Accept End User License Agreement? [Y/n]: " ACCEPT_EULA
+    ACCEPT_EULA=$(echo "${ACCEPT_EULA:-y}" | awk '{print tolower($0)}')
+
+    if [ "$ACCEPT_EULA" != "y" ]; then
+      error_and_exit "You must agree to the End User License Agreement terms and conditions in order to download software."
+    fi
+
+    local BASE_URL=${DOWNLOAD_URL%/product_files*}
+
+    local ACCEPT_EULA_RESPONSE_CODE=$(curl -s -w "%{http_code}" -o /dev/null --data '' -H "Authorization: Token $PIVNET_API_TOKEN" $BASE_URL/eula_acceptance)
+
+    if [ "$ACCEPT_EULA_RESPONSE_CODE" != "200" ]; then
+      error_and_exit "Failed to accept End User License Agreement. Please visit the product page on network.pivotal.io and accept the EULA."
+    fi
+
+    echo "Accepted End User License Agreement.  Visit https://network.pivotal.io/users/dashboard/eulas to view all accepted EULAs"
   fi
 
   # Get the filename from the redirect and strip the newline char
-  # local FILENAME=$(echo "$OUTPUT" | grep -o -E 'filename=.*$' | sed -e 's/filename=//' | sed 's/\r$//')
   local FILENAME=$(echo "$OUTPUT" | grep -o -E 'filename=.*$' | sed -e 's/filename=//' | sed "s/$(printf '\r')//")
+
+  if [ -z "$FILENAME" ]; then
+    error_and_exit "Unable to get the filename from the download url."
+  fi
 
   echo "Downloading $FILENAME from $DOWNLOAD_URL"
 
