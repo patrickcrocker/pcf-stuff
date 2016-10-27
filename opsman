@@ -60,7 +60,8 @@ upload_to_opsman() {
   local UAA_ACCESS_TOKEN=$(uaac context | grep access_token | awk '{ print $2 }')
 
   if ! is_valid_access_token "$UAA_ACCESS_TOKEN"; then
-    error_and_exit "Invalid UAA Access Token. Run 'opsman login' to login to UAA."
+    login_to_uaac
+    UAA_ACCESS_TOKEN=$(uaac context | grep access_token | awk '{ print $2 }')
   fi
 
   curl "https://localhost/api/v0/available_products" \
