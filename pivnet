@@ -79,7 +79,10 @@ download_from_pivnet() {
       error_and_exit "Failed to accept End User License Agreement. Please visit the product page on network.pivotal.io and accept the EULA."
     fi
 
-    echo "Accepted End User License Agreement.  Visit https://network.pivotal.io/users/dashboard/eulas to view all accepted EULAs"
+    echo "Accepted End User License Agreement. Visit https://network.pivotal.io/users/dashboard/eulas to view all accepted EULAs"
+
+    # Hit the download url again now that we've accepted the EULA
+    OUTPUT=$(curl -s --data '' -D- -o /dev/null -H "Authorization: Token $PIVNET_API_TOKEN" $DOWNLOAD_URL)
   fi
 
   # Get the filename from the redirect and strip the newline char
