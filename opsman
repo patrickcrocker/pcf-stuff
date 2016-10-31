@@ -64,6 +64,8 @@ upload_to_opsman() {
     UAA_ACCESS_TOKEN=$(uaac context | grep access_token | awk '{ print $2 }')
   fi
 
+  echo "Uploading $LOCAL_FILE_NAME"
+
   curl "https://localhost/api/v0/available_products" \
     -k -# -o /dev/null \
     -X POST \
@@ -71,12 +73,18 @@ upload_to_opsman() {
     -F "product[file]=@$LOCAL_FILE_NAME"
 }
 
+upload_all_to_opsman() {
+  for filename in "$1"; do
+    upload_to_opsman "$filename"
+  done
+}
+
 CMD=$1 ARG=$2
 
 if [ "login" = "$CMD" ]; then
   login_to_uaac
 elif [ "upload" = "$CMD" ]; then
-  upload_to_opsman $ARG
+  upload_all_to_opsman $ARG
 else
   usage_and_exit
 fi
