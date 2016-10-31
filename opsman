@@ -74,8 +74,8 @@ upload_to_opsman() {
 }
 
 upload_all_to_opsman() {
-  for filename in "$1"; do
-    upload_to_opsman "$filename"
+  for filename in $1; do
+    upload_to_opsman $filename
   done
 }
 
@@ -84,7 +84,7 @@ CMD=$1 ARG=$2
 if [ "login" = "$CMD" ]; then
   login_to_uaac
 elif [ "upload" = "$CMD" ]; then
-  upload_all_to_opsman $ARG
+  upload_all_to_opsman "$ARG"
 else
   usage_and_exit
 fi
