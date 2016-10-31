@@ -2,6 +2,8 @@
 
 set -e
 
+command -v jq >/dev/null 2>&1 || { echo "This script requires jq. Please install from: https://stedolan.github.io/jq/"; exit 1; }
+
 # Unique resource group across your subscription
 RESOURCE_GROUP=pcf18rc2
 # South Central represent!  (but really, use what you want)
