@@ -22,4 +22,11 @@ Then, upload your download to Ops Manager:
 $ opsman upload cf-1.8.8-build.1.pivotal
 ```
 
+You can also upload multiple stuff:
+```
+$ opsman upload '*.pivotal'
+```
+
+> Please note the use of quoting to prevent pre-mature shell expansion of the wildcard!
+
 The script is interactive, so it will prompt you to login if necessary.
