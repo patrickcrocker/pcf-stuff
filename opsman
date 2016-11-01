@@ -81,7 +81,7 @@ upload_to_opsman() {
 
       local PRODUCTS=$(curl "https://localhost/api/v0/staged/products" -k -X GET -H "Authorization: Bearer $UAA_ACCESS_TOKEN")
 
-      if [[ "$OUTPUT" =~ ($PRODUCT_NAME-[a-z0-9]+) ]]; then
+      if [[ "$PRODUCTS" =~ ($PRODUCT_NAME-[a-z0-9]+) ]]; then
 
         local PRODUCT_GUID=${BASH_REMATCH[1]}
 
