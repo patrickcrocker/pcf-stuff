@@ -66,11 +66,19 @@ upload_to_opsman() {
 
   echo "Uploading $LOCAL_FILE_NAME"
 
-  curl "https://localhost/api/v0/available_products" \
-    -k -# -o /dev/null \
-    -X POST \
-    -H "Authorization: Bearer $UAA_ACCESS_TOKEN" \
-    -F "product[file]=@$LOCAL_FILE_NAME"
+  if [ "$file" = *bosh-stemcell-*.tgz ]; then
+    curl "https://localhost/api/v0/stemcells" \
+      -k -# -o /dev/null \
+      -X POST \
+      -H "Authorization: Bearer $UAA_ACCESS_TOKEN" \
+      -F "stemcell[file]=@$LOCAL_FILE_NAME"
+  else
+    curl "https://localhost/api/v0/available_products" \
+      -k -# -o /dev/null \
+      -X POST \
+      -H "Authorization: Bearer $UAA_ACCESS_TOKEN" \
+      -F "product[file]=@$LOCAL_FILE_NAME"
+  fi
 }
 
 upload_all_to_opsman() {
