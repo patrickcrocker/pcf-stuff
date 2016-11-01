@@ -66,41 +66,11 @@ upload_to_opsman() {
 
   echo "Uploading $LOCAL_FILE_NAME"
 
-  if [ "$LOCAL_FILE_NAME" = *bosh-stemcell-*.tgz ]; then
-
-    local PRODUCT_NAME
-    read -r -p "Product Name [p-bosh/p-mysql/etc]: " PRODUCT_NAME
-
-    if [ "$PRODUCT_NAME" = "p-bosh" ]; then
-      curl "https://example.com/api/v0/stemcells" \
-        -k -# -o /dev/null \
-        -X POST \
-        -H "Authorization: Bearer $UAA_ACCESS_TOKEN" \
-        -F "stemcell[file]=@$LOCAL_FILE_NAME"
-    else
-
-      local PRODUCTS=$(curl "https://localhost/api/v0/staged/products" -k -X GET -H "Authorization: Bearer $UAA_ACCESS_TOKEN")
-
-      if [[ "$PRODUCTS" =~ ($PRODUCT_NAME-[a-z0-9]+) ]]; then
-
-        local PRODUCT_GUID=${BASH_REMATCH[1]}
-
-        curl "https://localhost/products/$PRODUCT_GUID/stemcells" \
-          -k -# -o /dev/null \
-          -X POST \
-          -H "Authorization: Bearer $UAA_ACCESS_TOKEN" \
-          -F "product_stemcell[file]=@$LOCAL_FILE_NAME"
-      else
-        error_and_exit "Product $PRODUCT_NAME is not staged!"
-      fi
-    fi
-  else
-    curl "https://localhost/api/v0/available_products" \
-      -k -# -o /dev/null \
-      -X POST \
-      -H "Authorization: Bearer $UAA_ACCESS_TOKEN" \
-      -F "product[file]=@$LOCAL_FILE_NAME"
-  fi
+  curl "https://localhost/api/v0/available_products" \
+    -k -# -o /dev/null \
+    -X POST \
+    -H "Authorization: Bearer $UAA_ACCESS_TOKEN" \
+    -F "product[file]=@$LOCAL_FILE_NAME"
 }
 
 upload_all_to_opsman() {
