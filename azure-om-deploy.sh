@@ -119,7 +119,7 @@ azure network nic create --subnet-vnet-name pcf-net --subnet-name pcf \
 
 ssh-keygen -t rsa -f opsman -C ubuntu
 
-azure vm create $RESOURCE_GROUP ops-mananger $LOCATION \
+azure vm create $RESOURCE_GROUP ops-manager $LOCATION \
   Linux --nic-name ops-manager-nic \
   --os-disk-vhd https://$STORAGE_NAME.blob.core.windows.net/opsmanager/os_disk.vhd \
   --image-urn https://$STORAGE_NAME.blob.core.windows.net/opsmanager/image.vhd \
