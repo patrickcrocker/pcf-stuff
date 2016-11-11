@@ -1,16 +1,27 @@
 #!/bin/bash
+#
+# This script automates the "Launching an Ops Manager Director Instance on Azure"
+# instructions found at:
+#   http://docs.pivotal.io/pivotalcf/1-8/customizing/azure-om-deploy.html
+#
+# Usage:
+# azure-om-deploy azure-config.json
+#
 
 set -e
 
-command -v jq >/dev/null 2>&1 || { echo "This script requires jq. Please install from: https://stedolan.github.io/jq/"; exit 1; }
-
-config=$(dirname $0)/azure-om-deploy.json
+script=$(basename "$0")
+config=$1
 
 if [ ! -f "$config" ]; then
-  echo "Missing json properties file: $config"
-  echo "Please copy azure-om-deploy-sample.json to azure-om-deploy.json and update accordingly"
+  echo "Missing json config file."
+  echo "Please see azure-om-deploy-sample.json for an example."
+  echo "Usage:"
+  echo "  $script azure-config.json"
   exit 1
 fi
+
+command -v jq >/dev/null 2>&1 || { echo "This script requires jq. Please install from: https://stedolan.github.io/jq/"; exit 1; }
 
 # Unique resource group across your subscription
 RESOURCE_GROUP=$(cat $config | jq -r .RESOURCE_GROUP)
@@ -31,6 +42,16 @@ OPS_MAN_VM_NAME=$(cat $config | jq -r .OPS_MAN_VM_NAME)
 # Size in GB of Ops Manager OS disk
 OPS_MAN_VM_OS_DISK_SIZE=$(cat $config | jq -r .OPS_MAN_VM_OS_DISK_SIZE)
 
+# Validate
+currentSubscriptionId=$(azure account list --json | jq -r '.[] | select(.isDefault == true) | .id')
+
+if [ "${SUBSCRIPTION_ID}x" != "$currentSubscriptionId" ]; then
+  echo "The Azure subscription id defined in your config does not match the current id."
+  echo "  Defined subscription ID: $SUBSCRIPTION_ID"
+  echo "  Current subscription ID: $currentSubscriptionId"
+  echo "Verify your correct subscription ID and then Run 'azure account set $SUBSCRIPTION_ID'"
+fi
+exit 99
 # Create Resource Group
 
 azure group create $RESOURCE_GROUP $LOCATION
@@ -128,7 +149,7 @@ azure network nic create --subnet-vnet-name pcf-net --subnet-name pcf \
   --private-ip-address 10.0.0.5 --public-ip-name ops-manager-ip \
   $RESOURCE_GROUP ops-manager-nic $LOCATION
 
-ssh-keygen -t rsa -f opsman -C ubuntu
+ssh-keygen -t rsa -f opsman -C ubuntu -q -N ""
 
 azure vm create $RESOURCE_GROUP $OPS_MAN_VM_NAME $LOCATION \
   Linux --nic-name ops-manager-nic \
