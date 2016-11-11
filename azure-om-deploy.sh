@@ -18,7 +18,10 @@ DEPLOYMENT_STORAGE_ACCOUNTS=3
 SUBSCRIPTION_ID=SAMPLE01-B1B1-5544-afbc-SAMPLE00d7f9
 # Get this from: https://network.pivotal.io/products/ops-manager
 OPS_MAN_IMAGE_URL=https://opsmanagerciimagestorage.blob.core.windows.net/system/Microsoft.Compute/Images/images/opsmanager-osDisk.2f2d3039-5d95-47b4-98aa-e722f55cc55f.vhd
-
+# The name of your Ops Manager VM
+OPS_MAN_VM_NAME=ops-manager
+# Size in GB of Ops Manager OS disk
+OPS_MAN_VM_OS_DISK_SIZE=100
 
 # Create Resource Group
 
@@ -119,13 +122,18 @@ azure network nic create --subnet-vnet-name pcf-net --subnet-name pcf \
 
 ssh-keygen -t rsa -f opsman -C ubuntu
 
-azure vm create $RESOURCE_GROUP ops-manager $LOCATION \
+azure vm create $RESOURCE_GROUP $OPS_MAN_VM_NAME $LOCATION \
   Linux --nic-name ops-manager-nic \
   --os-disk-vhd https://$STORAGE_NAME.blob.core.windows.net/opsmanager/os_disk.vhd \
   --image-urn https://$STORAGE_NAME.blob.core.windows.net/opsmanager/image.vhd \
   --admin-username ubuntu --storage-account-name $STORAGE_NAME \
   --vm-size Standard_DS2_v2 --ssh-publickey-file opsman.pub
 
+azure vm stop $RESOURCE_GROUP $OPS_MAN_VM_NAME
+
+azure vm set $RESOURCE_GROUP $OPS_MAN_VM_NAME --new-os-disk-size $OPS_MAN_VM_OS_DISK_SIZE
+
+azure vm start $RESOURCE_GROUP $OPS_MAN_VM_NAME
 
 echo "Almost finished, just complete these manual steps:"
 echo "- Create DNS A Records for *.apps.DOMAIN.COM and *.system.DOMAIN.COM pointing to IP: $LB_PUBLIC_IP"
