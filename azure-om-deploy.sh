@@ -45,7 +45,7 @@ OPS_MAN_VM_OS_DISK_SIZE=$(cat $config | jq -r .OPS_MAN_VM_OS_DISK_SIZE)
 # Validate
 currentSubscriptionId=$(azure account list --json | jq -r '.[] | select(.isDefault == true) | .id')
 
-if [ "${SUBSCRIPTION_ID}x" != "$currentSubscriptionId" ]; then
+if [ "$SUBSCRIPTION_ID" != "$currentSubscriptionId" ]; then
   echo "The Azure subscription id defined in your config does not match the current id."
   echo "  Defined subscription ID: $SUBSCRIPTION_ID"
   echo "  Current subscription ID: $currentSubscriptionId"
