@@ -2,6 +2,21 @@
 
 A bunch of stuff I use for Pivotal Cloud Foundry
 
+## azure-om-deploy
+
+This script automates the "Launching an Ops Manager Director Instance on Azure"
+instructions found at: http://docs.pivotal.io/pivotalcf/1-8/customizing/azure-om-deploy.html
+
+First, make a copy of the sample config file and then update it with _your_ values:
+```
+$ cp azure-om-deploy-sample.json azure-om-deploy.json
+```
+
+Then, run the script:
+```
+$ azure-om-deploy azure-om-deploy.json
+```
+
 ## pivnet
 
 Handy script for downloading stuff from Pivotal Network:
