@@ -51,7 +51,7 @@ if [ "$SUBSCRIPTION_ID" != "$currentSubscriptionId" ]; then
   echo "  Current subscription ID: $currentSubscriptionId"
   echo "Verify your correct subscription ID and then Run 'azure account set $SUBSCRIPTION_ID'"
 fi
-exit 99
+
 # Create Resource Group
 
 azure group create $RESOURCE_GROUP $LOCATION
