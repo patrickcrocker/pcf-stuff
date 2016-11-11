@@ -1,0 +1,11 @@
+{
+  "RESOURCE_GROUP": "pcf18",
+  "LOCATION": "southcentralus",
+  "STORAGE_NAME": "boshabcdef0123456789",
+  "DEPLOYMENT_STORAGE_BASENAME": "deployabcdef0123456789",
+  "DEPLOYMENT_STORAGE_ACCOUNTS": "3",
+  "SUBSCRIPTION_ID": "SAMPLE01-B1B1-5544-afbc-SAMPLE00d7f9",
+  "OPS_MAN_IMAGE_URL": "https://opsmanagereastus.blob.core.windows.net/images/ops-manager-1.8.10.vhd",
+  "OPS_MAN_VM_NAME": "ops-manager",
+  "OPS_MAN_VM_OS_DISK_SIZE": "100"
+}

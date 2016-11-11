@@ -4,24 +4,32 @@ set -e
 
 command -v jq >/dev/null 2>&1 || { echo "This script requires jq. Please install from: https://stedolan.github.io/jq/"; exit 1; }
 
+propsfile=$(dirname $0)/azure-om-deploy.json
+
+if [ ! -f "$propsfile" ]; then
+  echo "Missing json properties file: $propsfile"
+  echo "Please copy azure-om-deploy-sample.json to azure-om-deploy.json and update accordingly"
+  exit 1
+fi
+
 # Unique resource group across your subscription
-RESOURCE_GROUP=pcf18rc2
+RESOURCE_GROUP=$(cat $propsfile | jq -r .RESOURCE_GROUP)
 # South Central represent!  (but really, use what you want)
-LOCATION=southcentralus
+LOCATION=$(cat $propsfile | jq -r .LOCATION)
 # Make this up, just make sure it is globally unique across Azure, between 3 and 24 characters in length, and contain only lowercase letters and numbers
-STORAGE_NAME=boshabcdef0123456789
+STORAGE_NAME=$(cat $propsfile | jq -r .STORAGE_NAME)
 # Same rules as above. Later we append the storage acount index number, so leave room!
-DEPLOYMENT_STORAGE_BASENAME=deployabcdef0123456789
+DEPLOYMENT_STORAGE_BASENAME=$(cat $propsfile | jq -r .DEPLOYMENT_STORAGE_BASENAME)
 # Number of additional storage accounts to create (see above!)
-DEPLOYMENT_STORAGE_ACCOUNTS=3
+DEPLOYMENT_STORAGE_ACCOUNTS=$(cat $propsfile | jq -r .DEPLOYMENT_STORAGE_ACCOUNTS)
 # Your Azure subscription id
-SUBSCRIPTION_ID=SAMPLE01-B1B1-5544-afbc-SAMPLE00d7f9
+SUBSCRIPTION_ID=$(cat $propsfile | jq -r .SUBSCRIPTION_ID)
 # Get this from: https://network.pivotal.io/products/ops-manager
-OPS_MAN_IMAGE_URL=https://opsmanagerciimagestorage.blob.core.windows.net/system/Microsoft.Compute/Images/images/opsmanager-osDisk.2f2d3039-5d95-47b4-98aa-e722f55cc55f.vhd
+OPS_MAN_IMAGE_URL=$(cat $propsfile | jq -r .OPS_MAN_IMAGE_URL)
 # The name of your Ops Manager VM
-OPS_MAN_VM_NAME=ops-manager
+OPS_MAN_VM_NAME=$(cat $propsfile | jq -r .OPS_MAN_VM_NAME)
 # Size in GB of Ops Manager OS disk
-OPS_MAN_VM_OS_DISK_SIZE=100
+OPS_MAN_VM_OS_DISK_SIZE=$(cat $propsfile | jq -r .OPS_MAN_VM_OS_DISK_SIZE)
 
 # Create Resource Group
 
@@ -129,7 +137,7 @@ azure vm create $RESOURCE_GROUP $OPS_MAN_VM_NAME $LOCATION \
   --admin-username ubuntu --storage-account-name $STORAGE_NAME \
   --vm-size Standard_DS2_v2 --ssh-publickey-file opsman.pub
 
-azure vm stop $RESOURCE_GROUP $OPS_MAN_VM_NAME
+azure vm deallocate $RESOURCE_GROUP $OPS_MAN_VM_NAME
 
 azure vm set $RESOURCE_GROUP $OPS_MAN_VM_NAME --new-os-disk-size $OPS_MAN_VM_OS_DISK_SIZE
 
