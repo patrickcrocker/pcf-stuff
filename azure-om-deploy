@@ -50,6 +50,7 @@ if [ "$SUBSCRIPTION_ID" != "$currentSubscriptionId" ]; then
   echo "  Defined subscription ID: $SUBSCRIPTION_ID"
   echo "  Current subscription ID: $currentSubscriptionId"
   echo "Verify your correct subscription ID and then Run 'azure account set $SUBSCRIPTION_ID'"
+  exit 1
 fi
 
 # Create Resource Group
