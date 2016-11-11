@@ -149,14 +149,14 @@ azure network nic create --subnet-vnet-name pcf-net --subnet-name pcf \
   --private-ip-address 10.0.0.5 --public-ip-name ops-manager-ip \
   $RESOURCE_GROUP ops-manager-nic $LOCATION
 
-ssh-keygen -t rsa -f opsman -C ubuntu -q -N ""
+ssh-keygen -t rsa -f opsman_id_rsa -C ubuntu -q -N ""
 
 azure vm create $RESOURCE_GROUP $OPS_MAN_VM_NAME $LOCATION \
   Linux --nic-name ops-manager-nic \
   --os-disk-vhd https://$STORAGE_NAME.blob.core.windows.net/opsmanager/os_disk.vhd \
   --image-urn https://$STORAGE_NAME.blob.core.windows.net/opsmanager/image.vhd \
   --admin-username ubuntu --storage-account-name $STORAGE_NAME \
-  --vm-size Standard_DS2_v2 --ssh-publickey-file opsman.pub
+  --vm-size Standard_DS2_v2 --ssh-publickey-file opsman_id_rsa.pub
 
 azure vm deallocate $RESOURCE_GROUP $OPS_MAN_VM_NAME
 
