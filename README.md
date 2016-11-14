@@ -24,7 +24,11 @@ Handy script for downloading stuff from Pivotal Network:
 $ pivnet download https://network.pivotal.io/api/v2/products/elastic-runtime/releases/2555/product_files/8041/download
 ```
 
-The script is interactive, so it will ask you for your Pivnet API token as well as prompting to accept the End User License Agreement.
+Features:
+- Prompts user for Pivnet API token
+- Prompts user to save the Pivnet API token for future use
+- Prompts user to accept End User License Agreement
+- Validates MD5 checksum of download
 
 ## opsman
 
@@ -44,4 +48,5 @@ $ opsman upload '*.pivotal'
 
 > Please note the use of quoting to prevent pre-mature shell expansion of the wildcard!
 
-The script is interactive, so it will prompt you to login if necessary.
+Features:
+- Prompts user for Ops Manager credentials if necessary

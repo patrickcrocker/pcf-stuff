@@ -30,6 +30,17 @@ set_token() {
   echo "Updated Pivotal Network API Token"
 }
 
+validate_checksum() {
+  local FILENAME=$1
+  local CHECKSUM=$2
+
+  # Ubuntu uses md5sum; OS X uses md5
+  local MD5SUM=$(command -v md5sum 2>/dev/null || command -v md5 2>/dev/null)
+  local OUTPUT=$($MD5SUM $FILENAME)
+
+  [[ "$OUTPUT" =~ "$CHECKSUM" ]]
+}
+
 download_from_pivnet() {
   local PIVNET_API_TOKEN=$PIVNET_API_TOKEN
   if [ -z "$PIVNET_API_TOKEN" ]; then
@@ -98,6 +109,16 @@ download_from_pivnet() {
     -L --data '' \
     -H "Authorization: Token $PIVNET_API_TOKEN" \
     $DOWNLOAD_URL
+
+  echo "Validating checksum"
+  local PRODUCT_FILE_URL=${DOWNLOAD_URL%/download}
+  local CHECKSUM=$(curl -s $PRODUCT_FILE_URL | jq -r .product_file.md5)
+
+  if ! validate_checksum $FILENAME $CHECKSUM; then
+    error_and_exit "Checksum is invalid! Please re-download the product."
+  else
+    echo "Checksum is valid."
+  fi
 }
 
 CMD=$1 ARG=$2
