@@ -42,7 +42,7 @@ OPS_MAN_VM_NAME=$(cat $config | jq -r .OPS_MAN_VM_NAME)
 # Size in GB of Ops Manager OS disk
 OPS_MAN_VM_OS_DISK_SIZE=$(cat $config | jq -r .OPS_MAN_VM_OS_DISK_SIZE)
 
-# Validate
+# Validate the current Azure subscription id
 currentSubscriptionId=$(azure account list --json | jq -r '.[] | select(.isDefault == true) | .id')
 
 if [ "$SUBSCRIPTION_ID" != "$currentSubscriptionId" ]; then
@@ -61,23 +61,31 @@ azure group create $RESOURCE_GROUP $LOCATION
 
 azure network nsg create $RESOURCE_GROUP pcf-nsg $LOCATION
 
-azure network nsg rule create $RESOURCE_GROUP pcf-nsg internet-to-lb --protocol Tcp --priority 100 --destination-port-range '*'
+azure network nsg rule create $RESOURCE_GROUP pcf-nsg internet-to-lb \
+--protocol Tcp --priority 100 --destination-port-range '*'
 
 azure network nsg create $RESOURCE_GROUP opsmgr-nsg $LOCATION
 
-azure network nsg rule create $RESOURCE_GROUP opsmgr-nsg http --protocol Tcp --destination-port-range 80 --priority 100
+azure network nsg rule create $RESOURCE_GROUP opsmgr-nsg http \
+--protocol Tcp --destination-port-range 80 --priority 100
 
-azure network nsg rule create $RESOURCE_GROUP opsmgr-nsg https --protocol Tcp --destination-port-range 443 --priority 200
+azure network nsg rule create $RESOURCE_GROUP opsmgr-nsg https \
+--protocol Tcp --destination-port-range 443 --priority 200
 
-azure network nsg rule create $RESOURCE_GROUP opsmgr-nsg ssh --protocol Tcp --destination-port-range 22 --priority 300
+azure network nsg rule create $RESOURCE_GROUP opsmgr-nsg ssh \
+--protocol Tcp --destination-port-range 22 --priority 300
 
-azure network vnet create $RESOURCE_GROUP pcf-net $LOCATION --address-prefixes 10.0.0.0/16
+azure network vnet create $RESOURCE_GROUP pcf-net $LOCATION \
+--address-prefixes 10.0.0.0/16
 
-azure network vnet subnet create $RESOURCE_GROUP pcf-net pcf --address-prefix 10.0.0.0/20
+azure network vnet subnet create $RESOURCE_GROUP pcf-net pcf \
+--address-prefix 10.0.0.0/20
 
 # Create BOSH Storage Account
 
-azure storage account create $STORAGE_NAME --resource-group $RESOURCE_GROUP --sku-name LRS --kind Storage --subscription $SUBSCRIPTION_ID --location $LOCATION
+azure storage account create $STORAGE_NAME --resource-group $RESOURCE_GROUP \
+--sku-name LRS --kind Storage --subscription $SUBSCRIPTION_ID \
+--location $LOCATION
 
 export AZURE_STORAGE_CONNECTION_STRING=$(azure storage account connectionstring show $STORAGE_NAME --resource-group $RESOURCE_GROUP --json | jq -r '.string')
 
@@ -93,13 +101,20 @@ while (( $COUNTER < $DEPLOYMENT_STORAGE_ACCOUNTS )); do
 
   DEPLOYMENT_STORAGE_NAME=$DEPLOYMENT_STORAGE_BASENAME$COUNTER
 
-  azure storage account create $DEPLOYMENT_STORAGE_NAME --resource-group $RESOURCE_GROUP --sku-name LRS --kind Storage --subscription $SUBSCRIPTION_ID --location $LOCATION
+  azure storage account create $DEPLOYMENT_STORAGE_NAME \
+  --resource-group $RESOURCE_GROUP --sku-name LRS --kind Storage \
+  --subscription $SUBSCRIPTION_ID --location $LOCATION
 
   DEPLOYMENT_STORAGE_CONNECTION_STRING=$(azure storage account connectionstring show $DEPLOYMENT_STORAGE_NAME --resource-group $RESOURCE_GROUP --json | jq -r '.string')
 
-  azure storage container create opsmanager --connection-string "$DEPLOYMENT_STORAGE_CONNECTION_STRING"
-  azure storage container create bosh --connection-string "$DEPLOYMENT_STORAGE_CONNECTION_STRING"
-  azure storage container create stemcell --permission blob --connection-string "$DEPLOYMENT_STORAGE_CONNECTION_STRING"
+  azure storage container create opsmanager \
+  --connection-string "$DEPLOYMENT_STORAGE_CONNECTION_STRING"
+
+  azure storage container create bosh \
+  --connection-string "$DEPLOYMENT_STORAGE_CONNECTION_STRING"
+
+  azure storage container create stemcell \
+  --permission blob --connection-string "$DEPLOYMENT_STORAGE_CONNECTION_STRING"
 
   let COUNTER+=1
 done
@@ -110,17 +125,22 @@ azure network lb create $RESOURCE_GROUP pcf-lb $LOCATION
 
 LB_PUBLIC_IP=$(azure network public-ip create $RESOURCE_GROUP pcf-lb-ip $LOCATION --allocation-method Static --json | jq -r '.ipAddress')
 
-azure network lb frontend-ip create $RESOURCE_GROUP pcf-lb pcf-fe-ip --public-ip-name pcf-lb-ip
+azure network lb frontend-ip create $RESOURCE_GROUP pcf-lb pcf-fe-ip \
+--public-ip-name pcf-lb-ip
 
-azure network lb probe create $RESOURCE_GROUP pcf-lb tcp80 --protocol Tcp --port 80
+azure network lb probe create $RESOURCE_GROUP pcf-lb tcp80 \
+--protocol Tcp --port 80
 
 azure network lb address-pool create $RESOURCE_GROUP pcf-lb pcf-vms
 
-azure network lb rule create $RESOURCE_GROUP pcf-lb http --protocol tcp --frontend-port 80 --backend-port 80
+azure network lb rule create $RESOURCE_GROUP pcf-lb http --protocol tcp \
+--frontend-port 80 --backend-port 80
 
-azure network lb rule create $RESOURCE_GROUP pcf-lb https --protocol tcp --frontend-port 443 --backend-port 443
+azure network lb rule create $RESOURCE_GROUP pcf-lb https --protocol tcp \
+--frontend-port 443 --backend-port 443
 
-azure network lb rule create $RESOURCE_GROUP pcf-lb diego-ssh --protocol tcp --frontend-port 2222 --backend-port 2222
+azure network lb rule create $RESOURCE_GROUP pcf-lb diego-ssh --protocol tcp \
+--frontend-port 2222 --backend-port 2222
 
 echo "Manual Step!! Create DNS A Records for *.apps.DOMAIN.COM and *.system.DOMAIN.COM pointing to IP: $LB_PUBLIC_IP"
 
@@ -131,6 +151,7 @@ azure storage blob copy start $OPS_MAN_IMAGE_URL opsmanager \
   --dest-container opsmanager \
   --dest-blob image.vhd
 
+# Poll to check the status of the copy operation
 while true; do
   status=$(azure storage blob copy show opsmanager image.vhd --json | jq -r '.copy.status')
   if [ "$status" = "pending" ]; then
@@ -158,6 +179,8 @@ azure vm create $RESOURCE_GROUP $OPS_MAN_VM_NAME $LOCATION \
   --image-urn https://$STORAGE_NAME.blob.core.windows.net/opsmanager/image.vhd \
   --admin-username ubuntu --storage-account-name $STORAGE_NAME \
   --vm-size Standard_DS2_v2 --ssh-publickey-file opsman_id_rsa.pub
+
+# Increase the size of the Ops Manager OS Disk (default is 30GB which just isn't big enough)
 
 azure vm deallocate $RESOURCE_GROUP $OPS_MAN_VM_NAME
 
