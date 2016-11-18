@@ -1,2 +1,9 @@
+# Pivotal product tiles
 *.pivotal
+
+# Contains user config and secrets
 azure-om-deploy.json
+
+# Omit log and nohup outputs
+*.log
+*.out
