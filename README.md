@@ -50,3 +50,28 @@ $ opsman upload '*.pivotal'
 
 Features:
 - Prompts user for Ops Manager credentials if necessary
+
+## boshctl
+
+Stop all your BOSH deployments!
+
+First, login to BOSH:
+```
+$ bosh login
+RSA 1024 bit CA certificates are loaded due to old openssl compatibility
+Email: director
+Password:
+Logged in as 'director'
+```
+
+Then, _stop_ all deployments:
+```
+$ boshctl stop
+```
+
+Or, _start_ all deployments:
+```
+$ boshctl start
+```
+
+TIP: Run the script in background: ```nohup boshctl stop 1>boshctl.log 2>&1 &```
