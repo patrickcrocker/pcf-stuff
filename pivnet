@@ -23,6 +23,10 @@ error_and_exit() {
   echo "$1" && exit 1
 }
 
+jq_exists() {
+  command -v jq >/dev/null 2>&1
+}
+
 set_token() {
   [ -f "$PIVNETRC" ] && chmod 600 $PIVNETRC
   echo "PIVNET_API_TOKEN=$1" > $HOME/.pivnetrc
@@ -112,7 +116,13 @@ download_from_pivnet() {
 
   echo "Validating checksum"
   local PRODUCT_FILE_URL=${DOWNLOAD_URL%/download}
-  local CHECKSUM=$(curl -s $PRODUCT_FILE_URL | jq -r .product_file.md5)
+
+  local CHECKSUM=
+  if jq_exists; then
+    CHECKSUM=$(curl -s $PRODUCT_FILE_URL | jq -r .product_file.md5)
+  else
+    CHECKSUM=$(curl -s $PRODUCT_FILE_URL | grep -o -E '"md5"\s{0,}:\s{0,}"[0-9a-zA-Z]+"' | cut -d : -f 2 | tr -d \" | tr -d ' ')
+  fi
 
   if ! validate_checksum $FILENAME $CHECKSUM; then
     error_and_exit "Checksum is invalid! Please re-download the product."
