@@ -20,7 +20,7 @@ stop() {
   local deployment=$1
   local deployment_file="/var/tempest/workspaces/default/deployments/$deployment.yml"
   bosh deployment $deployment_file
-  bosh stop --hard
+  bosh -n stop --hard
 }
 
 stop_all() {
@@ -33,7 +33,7 @@ start() {
   local deployment=$1
   local deployment_file="/var/tempest/workspaces/default/deployments/$deployment.yml"
   bosh deployment $deployment_file
-  bosh start
+  bosh -n start
 }
 
 start_all() {
