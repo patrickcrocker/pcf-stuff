@@ -1,0 +1,53 @@
+#!/bin/bash
+
+set -e
+
+shopt -s expand_aliases
+
+alias bosh='BUNDLE_GEMFILE=/home/tempest-web/tempest/web/vendor/bosh/Gemfile bundle exec bosh'
+
+usage_and_exit() {
+  cat <<EOF
+Usage: boshctl <command>
+Examples:
+  boshctl start
+  boshctl stop
+EOF
+  exit 1
+}
+
+stop() {
+  local deployment=$1
+  local deployment_file="/var/tempest/workspaces/default/deployments/$deployment.yml"
+  bosh deployment $deployment_file
+  bosh stop --hard
+}
+
+stop_all() {
+  stop p-rabbitmq-06de04249495b53671f8
+  stop p-mysql-3e2e98a9c30ce1adbead
+  stop cf-6ba7b30b7d983be895df
+}
+
+start() {
+  local deployment=$1
+  local deployment_file="/var/tempest/workspaces/default/deployments/$deployment.yml"
+  bosh deployment $deployment_file
+  bosh start
+}
+
+start_all() {
+  start cf-6ba7b30b7d983be895df
+  start p-mysql-3e2e98a9c30ce1adbead
+  start p-rabbitmq-06de04249495b53671f8
+}
+
+CMD=$1 ARG=$2
+
+if [ "start" = "$CMD" ]; then
+  start_all
+elif [ "stop" = "$CMD" ]; then
+  stop_all
+else
+  usage_and_exit
+fi
