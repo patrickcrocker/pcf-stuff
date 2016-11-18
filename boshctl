@@ -8,10 +8,17 @@ alias bosh='BUNDLE_GEMFILE=/home/tempest-web/tempest/web/vendor/bosh/Gemfile bun
 
 usage_and_exit() {
   cat <<EOF
+BOSH Control starts or stops all your BOSH deployments.
+
 Usage: boshctl <command>
 Examples:
   boshctl start
   boshctl stop
+
+TIP: Use nohup to run this in the background:
+  nohup ./boshctl stop 1>boshctl.log 2>&1 &
+
+WARNING: This script is currently EXPERIMENTAL! So, you know, use with caution ;)
 EOF
   exit 1
 }
@@ -38,6 +45,7 @@ start() {
   bosh -n start
 }
 
+# Stop all other products then CF
 stop_all() {
   for deployment in $(get_product_deployments); do
     stop $deployment
@@ -45,6 +53,7 @@ stop_all() {
   stop $(get_cf_deployment)
 }
 
+# Start CF then all other products
 start_all() {
   start $(get_cf_deployment)
   for deployment in $(get_product_deployments); do
