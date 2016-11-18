@@ -16,17 +16,19 @@ EOF
   exit 1
 }
 
+get_cf_deployment() {
+  bosh deployments 2>/dev/null | grep -o '^| cf-.*' | cut -d \| -f 2 | tr -d ' '
+}
+
+get_product_deployments() {
+  bosh deployments 2>/dev/null | grep -o '^| p-.*' | cut -d \| -f 2 | tr -d ' '
+}
+
 stop() {
   local deployment=$1
   local deployment_file="/var/tempest/workspaces/default/deployments/$deployment.yml"
   bosh deployment $deployment_file
   bosh -n stop --hard
-}
-
-stop_all() {
-  stop p-rabbitmq-06de04249495b53671f8
-  stop p-mysql-3e2e98a9c30ce1adbead
-  stop cf-6ba7b30b7d983be895df
 }
 
 start() {
@@ -36,10 +38,18 @@ start() {
   bosh -n start
 }
 
+stop_all() {
+  for deployment in $(get_product_deployments); do
+    stop $deployment
+  done
+  stop $(get_cf_deployment)
+}
+
 start_all() {
-  start cf-6ba7b30b7d983be895df
-  start p-mysql-3e2e98a9c30ce1adbead
-  start p-rabbitmq-06de04249495b53671f8
+  start $(get_cf_deployment)
+  for deployment in $(get_product_deployments); do
+    start $deployment
+  done
 }
 
 CMD=$1 ARG=$2
