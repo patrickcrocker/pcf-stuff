@@ -53,7 +53,9 @@ Features:
 
 ## boshctl
 
-Stop all your BOSH deployments!
+BOSH Control is used to start or stop all your deployments. This script will 
+queue the tasks so you can run it and not have to worry about keeping your 
+terminal session open.
 
 First, login to BOSH:
 ```
@@ -73,5 +75,3 @@ Or, _start_ all deployments:
 ```
 $ boshctl start
 ```
-
-TIP: Run the script in background: ```nohup boshctl stop 1>boshctl.log 2>&1 &```
