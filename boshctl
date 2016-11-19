@@ -28,21 +28,21 @@ get_cf_deployment() {
 }
 
 get_product_deployments() {
-  bosh deployments 2>/dev/null | grep -o '^| p-.*' | cut -d \| -f 2 | tr -d ' '
+  bosh deployments 2>/dev/null | grep -o '^| p-.*\|^| apm-.*' | cut -d \| -f 2 | tr -d ' '
 }
 
 stop() {
   local deployment=$1
   local deployment_file="/var/tempest/workspaces/default/deployments/$deployment.yml"
   bosh deployment $deployment_file
-  bosh -n stop --hard
+  bosh -n -N stop --hard
 }
 
 start() {
   local deployment=$1
   local deployment_file="/var/tempest/workspaces/default/deployments/$deployment.yml"
   bosh deployment $deployment_file
-  bosh -n start
+  bosh -n -N start
 }
 
 # Stop all other products then CF
@@ -65,8 +65,10 @@ CMD=$1 ARG=$2
 
 if [ "start" = "$CMD" ]; then
   start_all
+  bosh tasks
 elif [ "stop" = "$CMD" ]; then
   stop_all
+  bosh tasks
 else
   usage_and_exit
 fi
