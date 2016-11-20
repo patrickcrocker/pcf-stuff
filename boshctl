@@ -14,11 +14,6 @@ Usage: boshctl <command>
 Examples:
   boshctl start
   boshctl stop
-
-TIP: Use nohup to run this in the background:
-  nohup ./boshctl stop 1>boshctl.log 2>&1 &
-
-WARNING: This script is currently EXPERIMENTAL! So, you know, use with caution ;)
 EOF
   exit 1
 }
