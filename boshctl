@@ -18,6 +18,10 @@ EOF
   exit 1
 }
 
+is_logged_in() {
+  ! $(bosh status | grep -q 'not logged in')
+}
+
 get_cf_deployment() {
   bosh deployments 2>/dev/null | grep -o '^| cf-.*' | cut -d \| -f 2 | tr -d ' '
 }
@@ -42,6 +46,9 @@ start() {
 
 # Stop all other products then CF
 stop_all() {
+  if ! is_logged_in; then
+    bosh login
+  fi
   for deployment in $(get_product_deployments); do
     stop $deployment
   done
@@ -50,6 +57,9 @@ stop_all() {
 
 # Start CF then all other products
 start_all() {
+  if ! is_logged_in; then
+    bosh login
+  fi
   start $(get_cf_deployment)
   for deployment in $(get_product_deployments); do
     start $deployment
