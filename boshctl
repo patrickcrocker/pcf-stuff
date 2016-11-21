@@ -47,6 +47,7 @@ start() {
 # Stop all other products then CF
 stop_all() {
   if ! is_logged_in; then
+    echo "Please log in first"
     bosh login
   fi
   for deployment in $(get_product_deployments); do
@@ -58,6 +59,7 @@ stop_all() {
 # Start CF then all other products
 start_all() {
   if ! is_logged_in; then
+    echo "Please log in first"
     bosh login
   fi
   start $(get_cf_deployment)
