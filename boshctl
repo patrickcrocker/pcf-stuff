@@ -22,12 +22,8 @@ is_logged_in() {
   ! $(bosh status | grep -q 'not logged in')
 }
 
-get_cf_deployment() {
-  bosh deployments 2>/dev/null | grep -o '^| cf-.*' | cut -d \| -f 2 | tr -d ' '
-}
-
-get_product_deployments() {
-  bosh deployments 2>/dev/null | grep -o '^| p-.*\|^| apm-.*' | cut -d \| -f 2 | tr -d ' '
+get_deployments() {
+  bosh deployments 2>/dev/null | grep -o '^| [[:alpha:]]\+-.*' | cut -d \| -f 2 | tr -d ' '
 }
 
 stop() {
@@ -44,26 +40,24 @@ start() {
   bosh -n -N start
 }
 
-# Stop all other products then CF
+# Stop all deployments in reverse order
 stop_all() {
   if ! is_logged_in; then
     echo "Please log in first"
     bosh login
   fi
-  for deployment in $(get_product_deployments); do
+  for deployment in $(get_deployments | awk '{a[i++]=$0} END {for (j=i-1; j>=0;) print a[j--] }'); do
     stop $deployment
   done
-  stop $(get_cf_deployment)
 }
 
-# Start CF then all other products
+# Start all deployments in order
 start_all() {
   if ! is_logged_in; then
     echo "Please log in first"
     bosh login
   fi
-  start $(get_cf_deployment)
-  for deployment in $(get_product_deployments); do
+  for deployment in $(get_deployments); do
     start $deployment
   done
 }
