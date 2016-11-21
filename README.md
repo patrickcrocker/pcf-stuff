@@ -52,6 +52,9 @@ To _start_ all deployments:
 $ boshctl start
 ```
 
+Features:
+- Prompts user for BOSH credentials if necessary
+
 ## azure-om-deploy
 
 This script automates the "Launching an Ops Manager Director Instance on Azure"
