@@ -42,6 +42,11 @@ BOSH Control is used to start or stop all your deployments. This script will
 queue the tasks so you can run it and not have to worry about keeping your
 terminal session open.
 
+To _login_ to BOSH using Ops Manager credentials (because who can remember the director password, right?)
+```
+$ boshctl login
+```
+
 To _stop_ all deployments:
 ```
 $ boshctl stop
@@ -53,7 +58,7 @@ $ boshctl start
 ```
 
 Features:
-- Prompts user for BOSH credentials if necessary
+- Prompts user for Ops Manager credentials if necessary
 
 ## azure-om-deploy
 
