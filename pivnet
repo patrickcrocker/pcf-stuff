@@ -69,13 +69,13 @@ download_from_pivnet() {
   # the response codes and get the filename from the Location header
   local OUTPUT=$(curl -s --data '' -D- -o /dev/null -H "Authorization: Token $PIVNET_API_TOKEN" $DOWNLOAD_URL)
 
-  if echo "$OUTPUT" | grep -q 'Status: 401'; then
+  if echo "$OUTPUT" | grep -q 'HTTP/1.1 401'; then
     error_and_exit "User could not be authenticated. Invalid token: $PIVNET_API_TOKEN"
-  elif echo "$OUTPUT" | grep -q 'Status: 403'; then
+  elif echo "$OUTPUT" | grep -q 'HTTP/1.1 403'; then
     error_and_exit "User does not have access to download files from this release."
-  elif echo "$OUTPUT" | grep -q 'Status: 404'; then
+  elif echo "$OUTPUT" | grep -q 'HTTP/1.1 404'; then
     error_and_exit "The product or release cannot be found. Invalid Download URL: $DOWNLOAD_URL"
-  elif echo "$OUTPUT" | grep -q 'Status: 451'; then
+  elif echo "$OUTPUT" | grep -q 'HTTP/1.1 451'; then
 
     echo "User has not accepted the current EULA for this release."
     local ACCEPT_EULA=
