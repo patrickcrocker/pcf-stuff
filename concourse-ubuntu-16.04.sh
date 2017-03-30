@@ -2,7 +2,7 @@
 # Concourse install script for ubuntu 16.04
 
 # certbot needs this for notifications about your ssl cert
-CONCOURSE_DOMAIN_EMAIL=patrick.crocker@gmail.com
+CONCOURSE_DOMAIN_EMAIL=you@example.com
 # change this to your domain name
 CONCOURSE_DOMAIN=ci.example.com
 CONCOURSE_URL=https://$CONCOURSE_DOMAIN
