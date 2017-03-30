@@ -8,17 +8,24 @@
 # - Handles websocket for fly hijack
 # - Redirects 80 to 443
 
-# certbot needs this for notifications about your ssl cert
-CONCOURSE_DOMAIN_EMAIL=you@example.com
-# change this to your domain name
-CONCOURSE_DOMAIN=ci.example.com
-CONCOURSE_URL=https://$CONCOURSE_DOMAIN
-# Optional: change these
-CONCOURSE_DB_USER=concourse
-CONCOURSE_DB_PASS=concourse
-# Required: CHANGE THESE!!!
-CONCOURSE_AUTH_USERNAME=admin
-CONCOURSE_AUTH_PASSWORD=admin123
+set -e -u
+
+# Change these to your values!
+#CONCOURSE_DOMAIN_EMAIL=you@example.com
+#CONCOURSE_DOMAIN=ci.example.com
+#CONCOURSE_URL=https://$CONCOURSE_DOMAIN
+#CONCOURSE_DB_USER=concourse
+#CONCOURSE_DB_PASS=concourse
+#CONCOURSE_AUTH_USERNAME=admin
+#CONCOURSE_AUTH_PASSWORD=admin123
+
+: "${CONCOURSE_DOMAIN_EMAIL:?CONCOURSE_DOMAIN_EMAIL not set or empty}"
+: "${CONCOURSE_DOMAIN:?CONCOURSE_DOMAIN not set or empty}"
+: "${CONCOURSE_URL:?CONCOURSE_URL not set or empty}"
+: "${CONCOURSE_DB_USER:?CONCOURSE_DB_USER not set or empty}"
+: "${CONCOURSE_DB_PASS:?CONCOURSE_DB_PASS not set or empty}"
+: "${CONCOURSE_AUTH_USERNAME:?CONCOURSE_AUTH_USERNAME not set or empty}"
+: "${CONCOURSE_AUTH_PASSWORD:?CONCOURSE_AUTH_PASSWORD not set or empty}"
 
 # Install packages
 
