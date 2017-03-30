@@ -1,5 +1,12 @@
 #!/bin/bash
 # Concourse install script for ubuntu 16.04
+# - Installs Postgres
+# - Runs concourse internally on 8080
+# - Creates a *valid* 90 day SSL cert via Letsencrypt certbot
+# - Includes cron.d job for auto SSL renewal!!
+# - Runs HTTPD as a reverse proxy: 80->8080, 443->8080
+# - Handles websocket for fly hijack
+# - Redirects 80 to 443
 
 # certbot needs this for notifications about your ssl cert
 CONCOURSE_DOMAIN_EMAIL=you@example.com
