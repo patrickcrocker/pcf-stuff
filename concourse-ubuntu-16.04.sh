@@ -13,7 +13,6 @@ set -e -u
 # Change these to your values!
 #CONCOURSE_DOMAIN_EMAIL=you@example.com
 #CONCOURSE_DOMAIN=ci.example.com
-#CONCOURSE_URL=https://$CONCOURSE_DOMAIN
 #CONCOURSE_DB_USER=concourse
 #CONCOURSE_DB_PASS=concourse
 #CONCOURSE_AUTH_USERNAME=admin
@@ -21,7 +20,6 @@ set -e -u
 
 : "${CONCOURSE_DOMAIN_EMAIL:?CONCOURSE_DOMAIN_EMAIL not set or empty}"
 : "${CONCOURSE_DOMAIN:?CONCOURSE_DOMAIN not set or empty}"
-: "${CONCOURSE_URL:?CONCOURSE_URL not set or empty}"
 : "${CONCOURSE_DB_USER:?CONCOURSE_DB_USER not set or empty}"
 : "${CONCOURSE_DB_PASS:?CONCOURSE_DB_PASS not set or empty}"
 : "${CONCOURSE_AUTH_USERNAME:?CONCOURSE_AUTH_USERNAME not set or empty}"
@@ -69,7 +67,7 @@ ExecStart=/usr/local/bin/concourse web \\
   --tsa-host-key /opt/concourse/host_key \\
   --tsa-authorized-keys /opt/concourse/authorized_worker_keys \\
   --postgres-data-source "postgres://$CONCOURSE_DB_USER:$CONCOURSE_DB_PASS@127.0.0.1:5432/atc?sslmode=disable" \\
-  --external-url "http://$CONCOURSE_URL"
+  --external-url "https://$CONCOURSE_DOMAIN"
 
 User=root
 Group=root
