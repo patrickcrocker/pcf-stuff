@@ -111,12 +111,13 @@ sudo bash -c 'cat >/usr/local/bin/concourse-upgrade' <<EOF
 
 set -e
 
-download_url=$(curl -s https://api.github.com/repos/concourse/concourse/releases | grep browser_download_url | grep concourse_linux_amd64 | head -n 1 | cut -d '"' -f 4)
+sudo systemctl stop concourse-worker.service
+sudo systemctl stop concourse-web.service
+
+download_url=\$(curl -s https://api.github.com/repos/concourse/concourse/releases | grep browser_download_url | grep concourse_linux_amd64 | head -n 1 | cut -d '"' -f 4)
 sudo wget -O /usr/local/bin/concourse \$download_url
 sudo chmod +x /usr/local/bin/concourse
 
-sudo systemctl stop concourse-worker.service
-sudo systemctl stop concourse-web.service
 sudo systemctl start concourse-web.service
 sudo systemctl start concourse-worker.service
 EOF
