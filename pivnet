@@ -23,10 +23,6 @@ error_and_exit() {
   echo "$1" && exit 1
 }
 
-jq_exists() {
-  command -v jq >/dev/null 2>&1
-}
-
 set_token() {
   [ -f "$PIVNETRC" ] && chmod 600 $PIVNETRC
   echo "PIVNET_API_TOKEN=$1" > $HOME/.pivnetrc
@@ -34,7 +30,17 @@ set_token() {
   echo "Updated Pivotal Network API Token"
 }
 
-validate_checksum() {
+validate_sha256() {
+  local FILENAME=$1
+  local CHECKSUM=$2
+
+  # Ubuntu uses md5sum; OS X uses md5
+  local OUTPUT=$(shasum -a 256 $FILENAME)
+
+  [[ "$OUTPUT" =~ "$CHECKSUM" ]]
+}
+
+validate_md5() {
   local FILENAME=$1
   local CHECKSUM=$2
 
@@ -43,6 +49,45 @@ validate_checksum() {
   local OUTPUT=$($MD5SUM $FILENAME)
 
   [[ "$OUTPUT" =~ "$CHECKSUM" ]]
+}
+
+# return the product file json
+get_product_file() {
+  local PIVNET_API_TOKEN=$PIVNET_API_TOKEN
+  local DOWNLOAD_URL=$1
+
+  # https://network.pivotal.io/api/v2/products/:slug/releases/:id/product_files/:id/download
+  local PIVNET_HOST=${DOWNLOAD_URL%/api/v2*}
+  local PRODUCT_SLUG=${DOWNLOAD_URL#*/products/*} && PRODUCT_SLUG=${PRODUCT_SLUG%*/releases/*}
+  local RELEASE_ID=${DOWNLOAD_URL#*/releases/*} && RELEASE_ID=${RELEASE_ID%*/product_files/*}
+  local FILE_ID=${DOWNLOAD_URL#*/product_files/*} && FILE_ID=${FILE_ID%*/download*}
+
+  curl -s -H "Authorization: Token $PIVNET_API_TOKEN" $PIVNET_HOST/api/v2/products/$PRODUCT_SLUG/releases/$RELEASE_ID/product_files/$FILE_ID
+}
+
+# get the filename from the product file json
+get_filename() {
+  local PIVNET_API_TOKEN=$PIVNET_API_TOKEN
+  local PRODUCT_FILE=$1
+
+  local AWS_OBJECT_KEY_VALUE=$(echo "$PRODUCT_FILE" | grep -oE '"aws_object_key":\s{0,}"[^"]*' | grep -o '[^"]*$')
+  basename "$AWS_OBJECT_KEY_VALUE"
+}
+
+# get the sha256 from the product file json
+get_sha256() {
+  local PIVNET_API_TOKEN=$PIVNET_API_TOKEN
+  local PRODUCT_FILE=$1
+
+  echo "$PRODUCT_FILE" | grep -oE '"sha256":\s{0,}"[^"]*' | grep -o '[^"]*$'
+}
+
+# get the sha256 from the product file json
+get_md5() {
+  local PIVNET_API_TOKEN=$PIVNET_API_TOKEN
+  local PRODUCT_FILE=$1
+
+  echo "$PRODUCT_FILE" | grep -oE '"md5":\s{0,}"[^"]*' | grep -o '[^"]*$'
 }
 
 download_from_pivnet() {
@@ -66,7 +111,7 @@ download_from_pivnet() {
   fi
 
   # Hit the download URL but don't follow the redirect just yet so we can validate
-  # the response codes and get the filename from the Location header
+  # the response codes and get the filename
   local OUTPUT=$(curl -s --data '' -D- -o /dev/null -H "Authorization: Token $PIVNET_API_TOKEN" $DOWNLOAD_URL)
 
   if echo "$OUTPUT" | grep -q 'HTTP/1.1 401'; then
@@ -100,8 +145,10 @@ download_from_pivnet() {
     OUTPUT=$(curl -s --data '' -D- -o /dev/null -H "Authorization: Token $PIVNET_API_TOKEN" $DOWNLOAD_URL)
   fi
 
-  # Get the filename from the redirect and strip the newline char
-  local FILENAME=$(echo "$OUTPUT" | grep -o -E 'filename=.*$' | sed -e 's/filename=//' | sed "s/$(printf '\r')//")
+  local PRODUCT_FILE=$(get_product_file "$DOWNLOAD_URL")
+  local FILENAME=$(get_filename "$PRODUCT_FILE")
+  local SHA256=$(get_sha256 "$PRODUCT_FILE")
+  local MD5=$(get_md5 "$PRODUCT_FILE")
 
   if [ -z "$FILENAME" ]; then
     error_and_exit "Unable to get the filename from the download url."
@@ -114,20 +161,22 @@ download_from_pivnet() {
     -H "Authorization: Token $PIVNET_API_TOKEN" \
     $DOWNLOAD_URL
 
-  echo "Validating checksum"
-  local PRODUCT_FILE_URL=${DOWNLOAD_URL%/download}
-
-  local CHECKSUM=
-  if jq_exists; then
-    CHECKSUM=$(curl -s $PRODUCT_FILE_URL | jq -r .product_file.md5)
+  if [ -n "$SHA256" ]; then
+    echo "Validating sha256 checksum: $SHA256"
+    if ! validate_sha256 $FILENAME $SHA256; then
+      error_and_exit "Checksum is invalid! Please re-download the product."
+    else
+      echo "Checksum is valid."
+    fi
+  elif [ -n "$MD5" ]; then
+    echo "Validating md5 checksum: $MD5"
+    if ! validate_md5 $FILENAME $MD5; then
+      error_and_exit "Checksum is invalid! Please re-download the product."
+    else
+      echo "Checksum is valid."
+    fi
   else
-    CHECKSUM=$(curl -s $PRODUCT_FILE_URL | grep -o -E '"md5"\s{0,}:\s{0,}"[0-9a-zA-Z]+"' | cut -d : -f 2 | tr -d \" | tr -d ' ')
-  fi
-
-  if ! validate_checksum $FILENAME $CHECKSUM; then
-    error_and_exit "Checksum is invalid! Please re-download the product."
-  else
-    echo "Checksum is valid."
+    error_and_exit "No SHA256 or MD5 checksum found in product file: $PRODUCT_FILE"
   fi
 }
 
