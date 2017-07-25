@@ -1,21 +1,6 @@
 # pcf-stuff
 
-A bunch of stuff I use for Pivotal Cloud Foundry
-
-## azure-om-deploy
-
-This script automates the "Launching an Ops Manager Director Instance on Azure"
-instructions found at: http://docs.pivotal.io/pivotalcf/1-8/customizing/azure-om-deploy.html
-
-First, make a copy of the sample config file and then update it with _your_ values:
-```
-$ cp azure-om-deploy-sample.json azure-om-deploy.json
-```
-
-Then, run the script:
-```
-$ azure-om-deploy azure-om-deploy.json
-```
+A bunch of stuff for working with Pivotal Cloud Foundry
 
 ## pivnet
 
@@ -53,25 +38,39 @@ Features:
 
 ## boshctl
 
-Stop all your BOSH deployments!
+BOSH Control is used to start or stop all your deployments. This script will
+queue the tasks so you can run it and not have to worry about keeping your
+terminal session open.
 
-First, login to BOSH:
+To _login_ to BOSH using Ops Manager credentials (because who can remember the director password, right?)
 ```
-$ bosh login
-RSA 1024 bit CA certificates are loaded due to old openssl compatibility
-Email: director
-Password:
-Logged in as 'director'
+$ boshctl login
 ```
 
-Then, _stop_ all deployments:
+To _stop_ all deployments:
 ```
 $ boshctl stop
 ```
 
-Or, _start_ all deployments:
+To _start_ all deployments:
 ```
 $ boshctl start
 ```
 
-TIP: Run the script in background: ```nohup boshctl stop 1>boshctl.log 2>&1 &```
+Features:
+- Prompts user for Ops Manager credentials if necessary
+
+## azure-om-deploy
+
+This script automates the "Launching an Ops Manager Director Instance on Azure"
+instructions found at: http://docs.pivotal.io/pivotalcf/1-8/customizing/azure-om-deploy.html
+
+First, make a copy of the sample config file and then update it with _your_ values:
+```
+$ cp azure-om-deploy-sample.json azure-om-deploy.json
+```
+
+Then, run the script:
+```
+$ azure-om-deploy azure-om-deploy.json
+```
