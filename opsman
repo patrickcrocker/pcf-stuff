@@ -12,6 +12,7 @@ Usage: opsman <command> [options]
 Examples:
   opsman login
   opsman upload cf-1.8.5-build.4.pivotal
+  opsman stemcell bosh-stemcell-3363.24-vsphere-esxi-ubuntu-trusty-go_agent.tgz
 EOF
   exit 1
 }
@@ -45,6 +46,32 @@ is_valid_access_token() {
     -d token="$UAA_ACCESS_TOKEN")
 
     [ "200" = "$STATUS_CODE" ]
+}
+
+upload_stemcell() {
+ local LOCAL_FILE_NAME=$1
+  if [ -z "$LOCAL_FILE_NAME" ]; then
+    read -r -p "Local file name: " LOCAL_FILE_NAME
+  fi
+
+  if [ ! -f "$LOCAL_FILE_NAME" ]; then
+    error_and_exit "Invalid file: $LOCAL_FILE_NAME"
+  fi
+
+  local UAA_ACCESS_TOKEN=$(uaac context | grep access_token | awk '{ print $2 }')
+
+  if ! is_valid_access_token "$UAA_ACCESS_TOKEN"; then
+    login_to_uaac
+    UAA_ACCESS_TOKEN=$(uaac context | grep access_token | awk '{ print $2 }')
+  fi
+
+  echo "Uploading $LOCAL_FILE_NAME"
+
+  curl "https://localhost/api/v0/stemcells" \
+    -k -# -o /dev/null \
+    -X POST \
+    -H "Authorization: Bearer $UAA_ACCESS_TOKEN" \
+    -F "stemcell[file]=@$LOCAL_FILE_NAME"
 }
 
 upload_to_opsman() {
@@ -85,6 +112,8 @@ if [ "login" = "$CMD" ]; then
   login_to_uaac
 elif [ "upload" = "$CMD" ]; then
   upload_all_to_opsman "$ARG"
+elif [ "stemcell" = "$CMD" ]; then
+  upload_stemcell "$ARG"
 else
   usage_and_exit
 fi
