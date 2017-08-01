@@ -60,7 +60,7 @@ $ boshctl start
 Features:
 - Prompts user for Ops Manager credentials if necessary
 
-## azure-om-deploy
+## install-scripts/azure-om-deploy
 
 This script automates the "Launching an Ops Manager Director Instance on Azure"
 instructions found at: http://docs.pivotal.io/pivotalcf/1-8/customizing/azure-om-deploy.html
