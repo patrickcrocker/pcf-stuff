@@ -7,6 +7,14 @@ shopt -s expand_aliases
 alias bosh='BUNDLE_GEMFILE=/home/tempest-web/tempest/web/vendor/bosh/Gemfile bundle exec bosh'
 alias uaac='BUNDLE_GEMFILE=/home/tempest-web/tempest/web/vendor/uaac/Gemfile bundle exec uaac'
 
+export TMPDIR_ROOT=$(mktemp -d /tmp/boshctl.XXXXXX)
+
+on_exit() {
+  rm -rf $TMPDIR_ROOT
+}
+
+trap on_exit EXIT
+
 usage_and_exit() {
   cat <<EOF
 BOSH Control starts or stops all your BOSH deployments.
@@ -127,23 +135,24 @@ get_deployments() {
 stop() {
   local deployment=$1
   local deployment_file="/var/tempest/workspaces/default/deployments/$deployment.yml"
-  if [ -r "$deployment_file" ]; then
-    bosh deployment $deployment_file
-    bosh -n -N stop --hard
-  else
-    echo "warning: no deployment file found for $deployment"
+  if [ ! -r "$deployment_file" ]; then
+    deployment_file="$TMPDIR_ROOT/$deployment.yml"
+    bosh download manifest $deployment "$deployment_file"
+    #echo "director_uuid: $(bosh status --uuid)" >> "$deployment_file"
   fi
+  bosh deployment "$deployment_file"
+  bosh -n -N stop --hard
 }
 
 start() {
   local deployment=$1
   local deployment_file="/var/tempest/workspaces/default/deployments/$deployment.yml"
-  if [ -r "$deployment_file" ]; then
-    bosh deployment $deployment_file
-    bosh -n -N start
-  else
-    echo "warning: no deployment file found for $deployment"
+  if [ ! -r "$deployment_file" ]; then
+    deployment_file="$TMPDIR_ROOT/$deployment.yml"
+    bosh download manifest $deployment "$deployment_file"
   fi
+  bosh deployment $deployment_file
+  bosh -n -N start
 }
 
 # Stop all deployments in reverse order
