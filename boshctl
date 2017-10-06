@@ -5,6 +5,7 @@ set -e
 shopt -s expand_aliases
 
 alias bosh='BUNDLE_GEMFILE=/home/tempest-web/tempest/web/vendor/bosh/Gemfile bundle exec bosh'
+alias bosh2='BUNDLE_GEMFILE=/home/tempest-web/tempest/web/vendor/bosh/Gemfile bundle exec bosh2'
 alias uaac='BUNDLE_GEMFILE=/home/tempest-web/tempest/web/vendor/uaac/Gemfile bundle exec uaac'
 
 export TMPDIR_ROOT=$(mktemp -d /tmp/boshctl.XXXXXX)
@@ -106,6 +107,7 @@ login_via_opsmgr() {
   fi
   local director_password=$(get_director_password)
   printf "director\n$director_password\n" | bosh login
+  printf "director\n$director_password\n" | bosh2 -e pcf login
 }
 
 login() {
@@ -113,6 +115,7 @@ login() {
     local director_url=
     read -r -p "Director URL: " director_url
     bosh -n --ca-cert /var/tempest/workspaces/default/root_ca_certificate target $director_url
+    bosh2 alias-env pcf -e $director_url --ca-cert=/var/tempest/workspaces/default/root_ca_certificate
   fi
   if is_opsman_locked; then
     local passphrase=
