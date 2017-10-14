@@ -118,6 +118,7 @@ login() {
   else
     local director_url=$(bosh target | grep -E -o '([0-9]+)\.([0-9]+)\.([0-9]+)\.([0-9]+)')
   fi
+  bosh2 -e pcf logout
   bosh2 alias-env pcf -e $director_url --ca-cert=/var/tempest/workspaces/default/root_ca_certificate
   if is_opsman_locked; then
     local passphrase=
