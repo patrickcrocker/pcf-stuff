@@ -5,7 +5,6 @@ set -e
 shopt -s expand_aliases
 
 alias bosh='BUNDLE_GEMFILE=/home/tempest-web/tempest/web/vendor/bosh/Gemfile bundle exec bosh'
-alias bosh2='BUNDLE_GEMFILE=/home/tempest-web/tempest/web/vendor/bosh/Gemfile bundle exec bosh2'
 alias uaac='BUNDLE_GEMFILE=/home/tempest-web/tempest/web/vendor/uaac/Gemfile bundle exec uaac'
 
 export TMPDIR_ROOT=$(mktemp -d /tmp/boshctl.XXXXXX)
