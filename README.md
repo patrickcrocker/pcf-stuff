@@ -51,6 +51,13 @@ To _login_ to BOSH using Ops Manager credentials (because who can remember the d
 ```
 $ boshctl login
 ```
+Once logged in, you can use either the `bosh` or the `bosh2` command line. When using `bosh2` you must specify the `pcf` alias that has been created for the environment. So, either of these commands will work
+```
+$ bosh vms
+```
+```
+$ bosh2 -e pcf vms
+```
 
 To _stop_ all deployments:
 ```
