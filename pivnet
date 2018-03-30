@@ -13,28 +13,27 @@ usage_and_exit() {
   cat <<EOF
 Usage: pivnet <command> [options]
 Examples:
-  pivnet token SAMPLEaJimQVTq2zWBYZ
+  pivnet token sample983s28494b87e4v36dl3794581-r
   pivnet download https://network.pivotal.io/.../product_files/7509/download
 EOF
   exit 1
 }
 
 error_and_exit() {
-  echo "$1" && exit 1
+  echo -e "$1" && exit 1
 }
 
 set_token() {
   [ -f "$PIVNETRC" ] && chmod 600 $PIVNETRC
-  echo "PIVNET_API_TOKEN=$1" > $HOME/.pivnetrc
+  echo "PIVNET_REFRESH_TOKEN=$1" > $HOME/.pivnetrc
   chmod 400 $PIVNETRC
-  echo "Updated Pivotal Network API Token"
+  echo "Updated Pivotal Network Refresh Token"
 }
 
 validate_sha256() {
   local FILENAME=$1
   local CHECKSUM=$2
 
-  # Ubuntu uses md5sum; OS X uses md5
   local OUTPUT=$(shasum -a 256 $FILENAME)
 
   [[ "$OUTPUT" =~ "$CHECKSUM" ]]
@@ -53,8 +52,8 @@ validate_md5() {
 
 # return the product file json
 get_product_file() {
-  local PIVNET_API_TOKEN=$PIVNET_API_TOKEN
   local DOWNLOAD_URL=$1
+  local ACCESS_TOKEN=$2
 
   # https://network.pivotal.io/api/v2/products/:slug/releases/:id/product_files/:id/download
   local PIVNET_HOST=${DOWNLOAD_URL%/api/v2*}
@@ -62,38 +61,38 @@ get_product_file() {
   local RELEASE_ID=${DOWNLOAD_URL#*/releases/*} && RELEASE_ID=${RELEASE_ID%*/product_files/*}
   local FILE_ID=${DOWNLOAD_URL#*/product_files/*} && FILE_ID=${FILE_ID%*/download*}
 
-  curl -s -H "Authorization: Token $PIVNET_API_TOKEN" $PIVNET_HOST/api/v2/products/$PRODUCT_SLUG/releases/$RELEASE_ID/product_files/$FILE_ID
+  curl -s -H "Authorization: Bearer $ACCESS_TOKEN" $PIVNET_HOST/api/v2/products/$PRODUCT_SLUG/releases/$RELEASE_ID/product_files/$FILE_ID
 }
 
 # get the filename from the product file json
 get_filename() {
-  local PIVNET_API_TOKEN=$PIVNET_API_TOKEN
   local PRODUCT_FILE=$1
-
   local AWS_OBJECT_KEY_VALUE=$(echo "$PRODUCT_FILE" | grep -oE '"aws_object_key":\s{0,}"[^"]*' | grep -o '[^"]*$')
   basename "$AWS_OBJECT_KEY_VALUE"
 }
 
 # get the sha256 from the product file json
 get_sha256() {
-  local PIVNET_API_TOKEN=$PIVNET_API_TOKEN
   local PRODUCT_FILE=$1
-
   echo "$PRODUCT_FILE" | grep -oE '"sha256":\s{0,}"[^"]*' | grep -o '[^"]*$'
 }
 
 # get the sha256 from the product file json
 get_md5() {
-  local PIVNET_API_TOKEN=$PIVNET_API_TOKEN
   local PRODUCT_FILE=$1
-
   echo "$PRODUCT_FILE" | grep -oE '"md5":\s{0,}"[^"]*' | grep -o '[^"]*$'
 }
 
+# get the access_token from the authentication/access_tokens json
+get_access_token() {
+  local ACCESS_TOKENS=$1
+  echo "$ACCESS_TOKENS" | grep -oE '"access_token":\s{0,}"[^"]*' | grep -o '[^"]*$'
+}
+
 download_from_pivnet() {
-  local PIVNET_API_TOKEN=$PIVNET_API_TOKEN
-  if [ -z "$PIVNET_API_TOKEN" ]; then
-    read -r -p "Pivnet API Token: " PIVNET_API_TOKEN
+  local PIVNET_REFRESH_TOKEN=$PIVNET_REFRESH_TOKEN
+  if [ -z "$PIVNET_REFRESH_TOKEN" ]; then
+    read -r -p "Pivnet Refresh Token: " PIVNET_REFRESH_TOKEN
 
     local SAVE_TOKEN=
     read -r -p "Save token for future use? [Y/n]: " SAVE_TOKEN
@@ -101,8 +100,15 @@ download_from_pivnet() {
     SAVE_TOKEN=$(echo "${SAVE_TOKEN:-y}" | awk '{print tolower($0)}')
 
     if [ "$SAVE_TOKEN" = "y" ]; then
-      set_token $PIVNET_API_TOKEN
+      set_token $PIVNET_REFRESH_TOKEN
     fi
+  fi
+
+  local OUTPUT=$(curl -s -H "Accept: application/json" -H "Content-Type: application/json" -d "{\"refresh_token\":\"$PIVNET_REFRESH_TOKEN\"}" -X POST https://network.pivotal.io/api/v2/authentication/access_tokens)
+  local ACCESS_TOKEN=$(get_access_token "$OUTPUT")
+
+  if [ -z "$ACCESS_TOKEN" ] || [ "$ACCESS_TOKEN" = "{}" ]; then
+    error_and_exit "Unable to obtain access token using supplied refresh token.\nPlease check your refresh token."
   fi
 
   local DOWNLOAD_URL=$1
@@ -112,10 +118,10 @@ download_from_pivnet() {
 
   # Hit the download URL but don't follow the redirect just yet so we can validate
   # the response codes and get the filename
-  local OUTPUT=$(curl -s --data '' -D- -o /dev/null -H "Authorization: Token $PIVNET_API_TOKEN" $DOWNLOAD_URL)
+  OUTPUT=$(curl -s --data '' -D- -o /dev/null -H "Authorization: Bearer $ACCESS_TOKEN" $DOWNLOAD_URL)
 
   if echo "$OUTPUT" | grep -q 'HTTP/1.1 401'; then
-    error_and_exit "User could not be authenticated. Invalid token: $PIVNET_API_TOKEN"
+    error_and_exit "User could not be authenticated.\nPlease check your refresh token."
   elif echo "$OUTPUT" | grep -q 'HTTP/1.1 403'; then
     error_and_exit "User does not have access to download files from this release."
   elif echo "$OUTPUT" | grep -q 'HTTP/1.1 404'; then
@@ -133,7 +139,7 @@ download_from_pivnet() {
 
     local BASE_URL=${DOWNLOAD_URL%/product_files*}
 
-    local ACCEPT_EULA_RESPONSE_CODE=$(curl -s -w "%{http_code}" -o /dev/null --data '' -H "Authorization: Token $PIVNET_API_TOKEN" $BASE_URL/eula_acceptance)
+    local ACCEPT_EULA_RESPONSE_CODE=$(curl -s -w "%{http_code}" -o /dev/null --data '' -H "Authorization: Bearer $ACCESS_TOKEN" $BASE_URL/eula_acceptance)
 
     if [ "$ACCEPT_EULA_RESPONSE_CODE" != "200" ]; then
       error_and_exit "Failed to accept End User License Agreement. Please visit the product page on network.pivotal.io and accept the EULA."
@@ -142,10 +148,10 @@ download_from_pivnet() {
     echo "Accepted End User License Agreement. Visit https://network.pivotal.io/users/dashboard/eulas to view all accepted EULAs"
 
     # Hit the download url again now that we've accepted the EULA
-    OUTPUT=$(curl -s --data '' -D- -o /dev/null -H "Authorization: Token $PIVNET_API_TOKEN" $DOWNLOAD_URL)
+    OUTPUT=$(curl -s --data '' -D- -o /dev/null -H "Authorization: Bearer $ACCESS_TOKEN" $DOWNLOAD_URL)
   fi
 
-  local PRODUCT_FILE=$(get_product_file "$DOWNLOAD_URL")
+  local PRODUCT_FILE=$(get_product_file "$DOWNLOAD_URL" "$ACCESS_TOKEN")
   local FILENAME=$(get_filename "$PRODUCT_FILE")
   local SHA256=$(get_sha256 "$PRODUCT_FILE")
   local MD5=$(get_md5 "$PRODUCT_FILE")
@@ -158,7 +164,7 @@ download_from_pivnet() {
 
   curl -o $FILENAME \
     -L --data '' \
-    -H "Authorization: Token $PIVNET_API_TOKEN" \
+    -H "Authorization: Bearer $ACCESS_TOKEN" \
     $DOWNLOAD_URL
 
   if [ -n "$SHA256" ]; then
