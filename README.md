@@ -10,8 +10,8 @@ $ pivnet download https://network.pivotal.io/api/v2/products/elastic-runtime/rel
 ```
 
 Features:
-- Prompts user for Pivnet API token
-- Prompts user to save the Pivnet API token for future use
+- Prompts user for Pivnet Refresh token
+- Prompts user to save the Pivnet Refresh token for future use
 - Prompts user to accept End User License Agreement
 - Validates checksum of download
 
