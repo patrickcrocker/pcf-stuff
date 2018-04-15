@@ -35,7 +35,7 @@ $ opsman upload '*.pivotal'
 
 You can also upload stemcells:
 ```
-$ opsman stemcell bosh-stemcell-3363.24-vsphere-esxi-ubuntu-trusty-go_agent.tgz
+$ opsman upload bosh-stemcell-3363.24-vsphere-esxi-ubuntu-trusty-go_agent.tgz
 ```
 
 Features:
