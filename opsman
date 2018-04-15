@@ -63,7 +63,7 @@ get_uaac_access_token() {
 
 is_stemcell() {
   local filename=${1:?filename null or not set}
-  [[ "$filename" == *bosh-stemcell-*.tgz ]]
+  [[ "$filename" == *stemcell*.tgz ]]
 }
 
 upload_file() {
