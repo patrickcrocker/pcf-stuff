@@ -1,10 +1,14 @@
 #!/bin/bash
 
-set -e
+set -eu
+set -o pipefail
 
-shopt -s expand_aliases
+if ! command -v uaac >/dev/null 2>&1; then
+  shopt -s expand_aliases
+  alias uaac='BUNDLE_GEMFILE=/home/tempest-web/tempest/web/vendor/uaac/Gemfile bundle exec uaac'
+fi
 
-alias uaac='BUNDLE_GEMFILE=/home/tempest-web/tempest/web/vendor/uaac/Gemfile bundle exec uaac'
+OPSMAN_HOST=${OPSMAN_HOST:-localhost}
 
 usage_and_exit() {
   cat <<EOF
@@ -12,7 +16,7 @@ Usage: opsman <command> [options]
 Examples:
   opsman login
   opsman upload cf-1.8.5-build.4.pivotal
-  opsman stemcell bosh-stemcell-3363.24-vsphere-esxi-ubuntu-trusty-go_agent.tgz
+  opsman upload bosh-stemcell-3363.24-vsphere-esxi-ubuntu-trusty-go_agent.tgz
 EOF
   exit 1
 }
@@ -28,18 +32,18 @@ login_to_uaac() {
   local OPSMAN_PASS=
   read -r -s -p "Ops Manager Pass: " OPSMAN_PASS
 
-  uaac target https://localhost/uaa --skip-ssl-validation
+  uaac target https://$OPSMAN_HOST/uaa --skip-ssl-validation
 
   uaac token owner get opsman "$OPSMAN_USER" -p "$OPSMAN_PASS" -s ''
 
-  echo "User $OPSMAN_USER logged in successfully."
+  printf 'User \e[33m%s\e[0m logged in successfully.\n' "$OPSMAN_USER"
 }
 
 is_valid_access_token() {
-  local UAA_ACCESS_TOKEN=$1
+  local UAA_ACCESS_TOKEN=${1:?UAA_ACCESS_TOKEN null or not set}
   [ -n "$UAA_ACCESS_TOKEN" ] || return 1
 
-  local STATUS_CODE=$(curl http://localhost/uaa/check_token -k -L -G \
+  local STATUS_CODE=$(curl https://$OPSMAN_HOST/uaa/check_token -k -L -G \
     -s -o /dev/null -w "%{http_code}" \
     -u "opsman:" \
     -d token_type=bearer \
@@ -48,8 +52,22 @@ is_valid_access_token() {
     [ "200" = "$STATUS_CODE" ]
 }
 
-upload_stemcell() {
- local LOCAL_FILE_NAME=$1
+get_uaac_access_token() {
+  local UAA_ACCESS_TOKEN=$(uaac context | grep access_token | awk '{ print $2 }')
+  if ! is_valid_access_token "$UAA_ACCESS_TOKEN"; then
+    login_to_uaac
+    UAA_ACCESS_TOKEN=$(uaac context | grep access_token | awk '{ print $2 }')
+  fi
+  echo "$UAA_ACCESS_TOKEN"
+}
+
+is_stemcell() {
+  local filename=${1:?filename null or not set}
+  [[ "$filename" == *bosh-stemcell-*.tgz ]]
+}
+
+upload_file() {
+  local LOCAL_FILE_NAME=${1:-}
   if [ -z "$LOCAL_FILE_NAME" ]; then
     read -r -p "Local file name: " LOCAL_FILE_NAME
   fi
@@ -58,51 +76,30 @@ upload_stemcell() {
     error_and_exit "Invalid file: $LOCAL_FILE_NAME"
   fi
 
-  local UAA_ACCESS_TOKEN=$(uaac context | grep access_token | awk '{ print $2 }')
+  local UAA_ACCESS_TOKEN=$(get_uaac_access_token)
 
-  if ! is_valid_access_token "$UAA_ACCESS_TOKEN"; then
-    login_to_uaac
-    UAA_ACCESS_TOKEN=$(uaac context | grep access_token | awk '{ print $2 }')
+  if is_stemcell "$LOCAL_FILE_NAME"; then
+    printf 'Uploading stemcell: \e[33m%s\e[0m\n' "$LOCAL_FILE_NAME"
+
+    curl "https://$OPSMAN_HOST/api/v0/stemcells" \
+      -k -# -o /dev/null \
+      -X POST \
+      -H "Authorization: Bearer $UAA_ACCESS_TOKEN" \
+      -F "stemcell[file]=@$LOCAL_FILE_NAME"
+  else
+    printf 'Uploading tile: \e[33m%s\e[0m\n' "$LOCAL_FILE_NAME"
+
+    curl "https://$OPSMAN_HOST/api/v0/available_products" \
+      -k -# -o /dev/null \
+      -X POST \
+      -H "Authorization: Bearer $UAA_ACCESS_TOKEN" \
+      -F "product[file]=@$LOCAL_FILE_NAME"
   fi
-
-  echo "Uploading $LOCAL_FILE_NAME"
-
-  curl "https://localhost/api/v0/stemcells" \
-    -k -# -o /dev/null \
-    -X POST \
-    -H "Authorization: Bearer $UAA_ACCESS_TOKEN" \
-    -F "stemcell[file]=@$LOCAL_FILE_NAME"
 }
 
-upload_to_opsman() {
-  local LOCAL_FILE_NAME=$1
-  if [ -z "$LOCAL_FILE_NAME" ]; then
-    read -r -p "Local file name: " LOCAL_FILE_NAME
-  fi
-
-  if [ ! -f "$LOCAL_FILE_NAME" ]; then
-    error_and_exit "Invalid file: $LOCAL_FILE_NAME"
-  fi
-
-  local UAA_ACCESS_TOKEN=$(uaac context | grep access_token | awk '{ print $2 }')
-
-  if ! is_valid_access_token "$UAA_ACCESS_TOKEN"; then
-    login_to_uaac
-    UAA_ACCESS_TOKEN=$(uaac context | grep access_token | awk '{ print $2 }')
-  fi
-
-  echo "Uploading $LOCAL_FILE_NAME"
-
-  curl "https://localhost/api/v0/available_products" \
-    -k -# -o /dev/null \
-    -X POST \
-    -H "Authorization: Bearer $UAA_ACCESS_TOKEN" \
-    -F "product[file]=@$LOCAL_FILE_NAME"
-}
-
-upload_all_to_opsman() {
+upload_files() {
   for filename in $1; do
-    upload_to_opsman $filename
+    upload_file "$filename"
   done
 }
 
@@ -111,9 +108,7 @@ CMD=$1 ARG=$2
 if [ "login" = "$CMD" ]; then
   login_to_uaac
 elif [ "upload" = "$CMD" ]; then
-  upload_all_to_opsman "$ARG"
-elif [ "stemcell" = "$CMD" ]; then
-  upload_stemcell "$ARG"
+  upload_files "$ARG"
 else
   usage_and_exit
 fi
