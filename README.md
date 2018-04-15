@@ -38,6 +38,11 @@ You can also upload stemcells:
 $ opsman upload bosh-stemcell-3363.24-vsphere-esxi-ubuntu-trusty-go_agent.tgz
 ```
 
+By default, the script targets Ops Manager running on `localhost` but you can override:
+```
+$ export OPSMAN_HOST=opsman.example.com
+```
+
 Features:
 - Prompts user for Ops Manager credentials if necessary
 
