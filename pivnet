@@ -108,7 +108,7 @@ download_from_pivnet() {
   local ACCESS_TOKEN=$(get_access_token "$OUTPUT")
 
   if [ -z "$ACCESS_TOKEN" ] || [ "$ACCESS_TOKEN" = "{}" ]; then
-    error_and_exit "Unable to obtain access token using supplied refresh token.\nPlease check your refresh token."
+    error_and_exit "Unable to obtain access token using supplied refresh token.\nPlease update your refresh token:\n  pivnet token sample983s28494b87e4v36dl3794581-r"
   fi
 
   local DOWNLOAD_URL=$1
@@ -160,7 +160,7 @@ download_from_pivnet() {
     error_and_exit "Unable to get the filename from the download url."
   fi
 
-  echo "Downloading $FILENAME from $DOWNLOAD_URL"
+  printf 'Downloading \e[33m%s\e[0m from %s \n' "$FILENAME" "$DOWNLOAD_URL"
 
   curl -o $FILENAME \
     -L --data '' \
@@ -168,14 +168,14 @@ download_from_pivnet() {
     $DOWNLOAD_URL
 
   if [ -n "$SHA256" ]; then
-    echo "Validating sha256 checksum: $SHA256"
+    printf 'Validating sha256 checksum: \e[33m%s\e[0m\n' "$SHA256"
     if ! validate_sha256 $FILENAME $SHA256; then
       error_and_exit "Checksum is invalid! Please re-download the product."
     else
       echo "Checksum is valid."
     fi
   elif [ -n "$MD5" ]; then
-    echo "Validating md5 checksum: $MD5"
+    printf 'Validating md5 checksum: \e[33m%s\e[0m\n' "$MD5"
     if ! validate_md5 $FILENAME $MD5; then
       error_and_exit "Checksum is invalid! Please re-download the product."
     else
