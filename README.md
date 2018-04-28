@@ -50,18 +50,16 @@ Features:
 
 BOSH Control is used to start or stop all your deployments. This script will
 queue the tasks so you can run it and not have to worry about keeping your
-terminal session open.
+terminal session open. **Note: boshctl is supported on versions 2.0 or later of Pivotal Cloud Foundry**
 
 To _login_ to BOSH using Ops Manager credentials (because who can remember the director password, right?)
 ```
 $ boshctl login
 ```
-Once logged in, you can use either the `bosh` or the `bosh2` command line. When using `bosh2` you must specify the `pcf` alias that has been created for the environment. So, either of these commands will work
+Once logged in, an alias titled `pcf` will be created in your environment. You can use the `bosh` command line by specifying the `pcf` environment. To see the VMs deployed in your environment:
+
 ```
-$ bosh vms
-```
-```
-$ bosh2 -e pcf vms
+$ bosh -e pcf vms
 ```
 
 To _stop_ all deployments:
