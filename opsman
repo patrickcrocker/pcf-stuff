@@ -98,16 +98,17 @@ upload_file() {
 }
 
 upload_files() {
-  for filename in $1; do
+  local filenames=${1:?filenames null or not set}
+  for filename in $filenames; do
     upload_file "$filename"
   done
 }
 
-CMD=$1 ARG=$2
+CMD=${1:-} ARG=${2:-}
 
 if [ "login" = "$CMD" ]; then
   login_to_uaac
-elif [ "upload" = "$CMD" ]; then
+elif [ "upload" = "$CMD" ] && [ -n "$ARG" ]; then
   upload_files "$ARG"
 else
   usage_and_exit
