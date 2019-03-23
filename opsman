@@ -40,7 +40,7 @@ login_to_uaac() {
 }
 
 is_valid_access_token() {
-  local UAA_ACCESS_TOKEN=${1:?UAA_ACCESS_TOKEN null or not set}
+  local UAA_ACCESS_TOKEN=${1:-}
   [ -n "$UAA_ACCESS_TOKEN" ] || return 1
 
   local STATUS_CODE=$(curl https://$OPSMAN_HOST/uaa/check_token -k -L -G \
@@ -50,15 +50,6 @@ is_valid_access_token() {
     -d token="$UAA_ACCESS_TOKEN")
 
     [ "200" = "$STATUS_CODE" ]
-}
-
-get_uaac_access_token() {
-  local UAA_ACCESS_TOKEN=$(uaac context | grep access_token | awk '{ print $2 }')
-  if ! is_valid_access_token "$UAA_ACCESS_TOKEN"; then
-    login_to_uaac
-    UAA_ACCESS_TOKEN=$(uaac context | grep access_token | awk '{ print $2 }')
-  fi
-  echo "$UAA_ACCESS_TOKEN"
 }
 
 is_stemcell() {
@@ -76,7 +67,12 @@ upload_file() {
     error_and_exit "Invalid file: $LOCAL_FILE_NAME"
   fi
 
-  local UAA_ACCESS_TOKEN=$(get_uaac_access_token)
+  local UAA_ACCESS_TOKEN=$(uaac context | grep access_token | awk '{ print $2 }')
+
+  if ! is_valid_access_token "$UAA_ACCESS_TOKEN"; then
+    login_to_uaac
+    UAA_ACCESS_TOKEN=$(uaac context | grep access_token | awk '{ print $2 }')
+  fi
 
   if is_stemcell "$LOCAL_FILE_NAME"; then
     printf 'Uploading stemcell: \e[33m%s\e[0m\n' "$LOCAL_FILE_NAME"
