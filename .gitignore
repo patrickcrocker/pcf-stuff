@@ -1,6 +1,7 @@
 # Pivotal product tiles
 *.pivotal
 *.tgz
+*.zip
 
 # Contains user config and secrets
 azure-om-deploy.json
