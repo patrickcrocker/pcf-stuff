@@ -17,12 +17,19 @@ Examples:
   opsman login
   opsman upload cf-1.8.5-build.4.pivotal
   opsman upload bosh-stemcell-3363.24-vsphere-esxi-ubuntu-trusty-go_agent.tgz
+  opsman get-vm-types
+  opsman delete-vm-types
+  opsman set-vm-type --name mytype --cpu 2 --ram 1024 --disk 10240
 EOF
   exit 1
 }
 
 error_and_exit() {
   echo "$1" && exit 1
+}
+
+jq_exists() {
+  command -v jq >/dev/null 2>&1
 }
 
 login_to_uaac() {
@@ -32,7 +39,7 @@ login_to_uaac() {
   local OPSMAN_PASS=
   read -r -s -p "Ops Manager Pass: " OPSMAN_PASS
 
-  uaac target https://$OPSMAN_HOST/uaa --skip-ssl-validation
+  uaac target "https://$OPSMAN_HOST/uaa" --skip-ssl-validation
 
   uaac token owner get opsman "$OPSMAN_USER" -p "$OPSMAN_PASS" -s ''
 
@@ -100,12 +107,127 @@ upload_files() {
   done
 }
 
-CMD=${1:-} ARG=${2:-}
+get_vm_types() {
+  local UAA_ACCESS_TOKEN=$(uaac context | grep access_token | awk '{ print $2 }')
+  if ! is_valid_access_token "$UAA_ACCESS_TOKEN"; then
+    login_to_uaac
+    UAA_ACCESS_TOKEN=$(uaac context | grep access_token | awk '{ print $2 }')
+  fi
+
+  curl "https://$OPSMAN_HOST/api/v0/vm_types" \
+    -k -s \
+    -H "Authorization: Bearer $UAA_ACCESS_TOKEN" 2>/dev/null
+}
+
+delete_vm_types() {
+  local UAA_ACCESS_TOKEN=$(uaac context | grep access_token | awk '{ print $2 }')
+  if ! is_valid_access_token "$UAA_ACCESS_TOKEN"; then
+    login_to_uaac
+    UAA_ACCESS_TOKEN=$(uaac context | grep access_token | awk '{ print $2 }')
+  fi
+
+  curl "https://$OPSMAN_HOST/api/v0/vm_types" \
+    -k -s \
+    -X DELETE \
+    -H "Authorization: Bearer $UAA_ACCESS_TOKEN" 2>/dev/null
+}
+
+has_vm_type() {
+  local name=$1
+  local vm_types=$2
+
+  echo "$vm_types" | jq -e --arg name "$name" 'select (.vm_types[].name == $name)' >/dev/null
+}
+
+set_vm_type() {
+  if ! jq_exists; then
+    error_and_exit "jq command not found. Please install jq to support set-vm-type functionality (https://stedolan.github.io/jq/download/)"
+  fi
+
+  local args name cpu ram disk
+  while (( "$#" )); do
+    case "$1" in
+      -n|--name)
+        name=$2 && shift 2
+        ;;
+      -c|--cpu)
+        cpu=$2 && shift 2
+        ;;
+      -r|--ram)
+        ram=$2 && shift 2
+        ;;
+      -d|--disk)
+        disk=$2 && shift 2
+        ;;
+      --) # end argument parsing
+        shift && break
+        ;;
+      -*|--*) # unsupported flags
+        echo "Error; Unsupported flag $1" >&2 && exit 1
+        ;;
+      *) # preserve positional arguments
+        args="$args $1" && shift
+        ;;
+    esac
+  done
+
+  local UAA_ACCESS_TOKEN=$(uaac context | grep access_token | awk '{ print $2 }')
+  if ! is_valid_access_token "$UAA_ACCESS_TOKEN"; then
+    login_to_uaac
+    UAA_ACCESS_TOKEN=$(uaac context | grep access_token | awk '{ print $2 }')
+  fi
+
+  local old_types=$(get_vm_types)
+  local new_types
+
+  #TODO: figure out a single "insert or update" jq statement
+  if has_vm_type "$name" "$old_types"; then
+    new_types=$(echo $old_types | jq \
+      --arg name "$name" \
+      --argjson cpu "$cpu" \
+      --argjson ram "$ram" \
+      --argjson disk "$disk" \
+      '(.vm_types[] | select(.name == $name)) += {
+        name: $name,
+        cpu: $cpu,
+        ram: $ram,
+        ephemeral_disk: $disk
+      }')
+  else
+    new_types=$(echo $old_types | jq \
+      --arg name "$name" \
+      --argjson cpu "$cpu" \
+      --argjson ram "$ram" \
+      --argjson disk "$disk" \
+      '.vm_types += [{
+        name: $name,
+        cpu: $cpu,
+        ram: $ram,
+        ephemeral_disk: $disk
+      }]')
+  fi
+
+  curl "https://$OPSMAN_HOST/api/v0/vm_types" \
+    -k -X PUT \
+    -H "Authorization: Bearer $UAA_ACCESS_TOKEN" \
+    -H "Content-Type: application/json" \
+    -d "$new_types"
+}
+
+CMD=${1:-}
+shift
+ARGS=$@
 
 if [ "login" = "$CMD" ]; then
   login_to_uaac
-elif [ "upload" = "$CMD" ] && [ -n "$ARG" ]; then
-  upload_files "$ARG"
+elif [ "upload" = "$CMD" ] && [ -n "$ARGS" ]; then
+  upload_files "$ARGS"
+elif [ "get-vm-types" = "$CMD" ]; then
+  get_vm_types
+elif [ "delete-vm-types" = "$CMD" ]; then
+  delete_vm_types
+elif [ "set-vm-type" = "$CMD" ] && [ -n "$ARGS" ]; then
+  set_vm_type $ARGS
 else
   usage_and_exit
 fi

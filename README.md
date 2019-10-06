@@ -17,16 +17,18 @@ Features:
 
 ## opsman
 
-Handy script for uploading stuff to Pivotal Ops Manager:
+Handy script for interacting with Pivotal Ops Manager.
 
-First, download something from Pivotal Network (see pivnet script above).
+### Uploading
 
-Then, upload your download to Ops Manager:
+First, download a product release from Pivotal Network (see `pivnet` script above).
+
+Then, upload to Ops Manager:
 ```
 $ opsman upload cf-1.8.8-build.1.pivotal
 ```
 
-You can also upload multiple stuff:
+You can also upload multiple products:
 ```
 $ opsman upload '*.pivotal'
 ```
@@ -45,6 +47,25 @@ $ export OPSMAN_HOST=opsman.example.com
 
 Features:
 - Prompts user for Ops Manager credentials if necessary
+
+### VM types
+
+Returning all VM types
+```
+$ opsman get-vm-types
+```
+
+Deleting all custom VM types
+```
+$ opsman delete-vm-types
+```
+
+Overriding defaults with custom VM types
+```
+$ opsman set-vm-type --name mytype --cpu 2 --ram 1024 --disk 10240
+```
+
+> Please note `set-vm-type` depends on the [jq](https://stedolan.github.io/jq/) cli, which should come with newer versions of Ops Manager.
 
 ## boshctl
 
