@@ -9,3 +9,9 @@ azure-om-deploy.json
 # Omit log and nohup outputs
 *.log
 *.out
+
+### IntelliJ IDEA ###
+.idea
+*.iws
+*.iml
+*.ipr
