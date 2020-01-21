@@ -214,6 +214,10 @@ set_vm_type() {
     -d "$new_types"
 }
 
+if [ $# -lt 1 ]; then
+  usage_and_exit
+fi
+
 CMD=${1:-}
 shift
 ARGS=$@
