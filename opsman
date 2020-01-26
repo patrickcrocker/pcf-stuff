@@ -15,6 +15,7 @@ usage_and_exit() {
 Usage: opsman <command> [options]
 Examples:
   opsman login
+  opsman unlock
   opsman upload cf-1.8.5-build.4.pivotal
   opsman upload bosh-stemcell-3363.24-vsphere-esxi-ubuntu-trusty-go_agent.tgz
   opsman get-vm-types
@@ -30,6 +31,25 @@ error_and_exit() {
 
 jq_exists() {
   command -v jq >/dev/null 2>&1
+}
+
+unlock_opsman() {
+  local PASSPHRASE
+  read -r -s -p "Decryption passphrase: " PASSPHRASE
+  echo # extra linefeed
+
+  local STATUS_CODE=$(curl "https://$OPSMAN_HOST/api/v0/unlock" -k \
+    -s -o /dev/null -w "%{http_code}" \
+    -X PUT \
+    -H "Content-Type: application/json" \
+    -d "{\"passphrase\": \"$PASSPHRASE\"}")
+
+  if [ "403" = "$STATUS_CODE" ]; then
+    echo "Decryption passphrase is incorrect" >&2
+    exit 1
+  fi
+
+  [ "200" = "$STATUS_CODE" ]
 }
 
 login_to_uaac() {
@@ -224,6 +244,8 @@ ARGS=$@
 
 if [ "login" = "$CMD" ]; then
   login_to_uaac
+elif [ "unlock" = "$CMD" ]; then
+  unlock_opsman
 elif [ "upload" = "$CMD" ] && [ -n "$ARGS" ]; then
   upload_files "$ARGS"
 elif [ "get-vm-types" = "$CMD" ]; then

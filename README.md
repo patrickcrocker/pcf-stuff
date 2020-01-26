@@ -19,6 +19,18 @@ Features:
 
 Handy script for interacting with Pivotal Ops Manager.
 
+```
+Usage: opsman <command> [options]
+Examples:
+  opsman login
+  opsman unlock
+  opsman upload cf-1.8.5-build.4.pivotal
+  opsman upload bosh-stemcell-3363.24-vsphere-esxi-ubuntu-trusty-go_agent.tgz
+  opsman get-vm-types
+  opsman delete-vm-types
+  opsman set-vm-type --name mytype --cpu 2 --ram 1024 --disk 10240
+```
+
 ### Uploading
 
 First, download a product release from Pivotal Network (see `pivnet` script above).
