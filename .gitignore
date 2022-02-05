@@ -1,4 +1,5 @@
 # Pivotal product tiles
+*.ova
 *.pivotal
 *.tgz
 *.zip
