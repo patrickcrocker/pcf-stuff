@@ -90,4 +90,4 @@ Examples:
   uaa-util copy-groups <source_user> <target_user>
 ```
 
-> The `compare-groups` and `copy-groups` are quite useful if you need to create a new user in Cloud Foundry that has the same permissions as the `admin` Cloud Flundry user.  Please note that the new user should have logged in at least once before copying the new groups over.  After the `admin` user's groups have been copied to the new user, the new user will likely need to re-login.
+> The `compare-groups` and `copy-groups` are quite useful if you need to create a new user in Cloud Foundry that has the same permissions as the `admin` Cloud Foundry user.  Please note that the new user should have logged in at least once before copying the new groups over.  After the `admin` user's groups have been copied to the new user, the new user will likely need to re-login.
