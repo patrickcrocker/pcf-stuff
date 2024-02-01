@@ -4,6 +4,7 @@
 	"features": {
 		"ghcr.io/nulldriver/devcontainer-features/gem:1": {
 			"gem": "cf-uaac"
-		}
+		},
+		"ghcr.io/nulldriver/devcontainer-features/cf-cli:1": {}
 	}
 }

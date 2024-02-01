@@ -78,3 +78,16 @@ $ opsman set-vm-type --name mytype --cpu 2 --ram 1024 --disk 10240
 ```
 
 > Please note `set-vm-type` depends on the [jq](https://stedolan.github.io/jq/) cli, which should come with newer versions of Ops Manager.
+
+## uaa-util
+
+Handy script for working with a UAA server
+```
+Usage: uaa-util <command> [options]
+Examples:
+  uaa-util login
+  uaa-util compare-groups <user1> <user2>
+  uaa-util copy-groups <source_user> <target_user>
+```
+
+> The `compare-groups` and `copy-groups` are quite useful if you need to create a new user in Cloud Foundry that has the same permissions as the `admin` Cloud Flundry user.  Please note that the new user should have logged in at least once before copying the new groups over.  After the `admin` user's groups have been copied to the new user, the new user will likely need to re-login.

@@ -1,0 +1,145 @@
+#!/bin/bash
+
+set -euo pipefail
+
+usage_and_exit() {
+    local script_name=$(basename ${BASH_SOURCE[0]})
+    cat <<EOF
+Usage: $script_name <command> [options]
+Examples:
+  $script_name login
+  $script_name compare-groups <user1> <user2>
+  $script_name copy-groups <source_user> <target_user>
+EOF
+    exit 1
+}
+
+login() {
+    local server=
+    read -r -p "UAA server: " server
+    uaac target "$server"
+
+    local username=
+    read -r -p "Username: " username
+
+    local password=
+    read -r -s -p "Password: " password
+
+    uaac token client get "$username" -s "$password"
+}
+
+get_user_groups() {
+    local username="${1:?username is required}"
+    local output=
+    if ! output=$(uaac curl "/Users?filter=userName+eq+%22$username%22&startIndex=1" --bodyonly); then
+        echo "Error searching for user: $username"
+        echo "$output" >&2
+        exit 1
+    fi
+    echo "$output" | jq -r '.resources[].groups[].display'
+}
+
+compare_groups() {
+    local user1="${1:?user1 is required}"
+    local user2="${2:?user2 is required}"
+
+    # Get the groups for each user
+    local groups_user1=$(get_user_groups $user1)
+    local groups_user2=$(get_user_groups $user2)
+
+    # Find common groups
+    local common_groups=""
+    for group in $groups_user1; do
+        if [[ $groups_user2 =~ (^|[[:space:]])$group($|[[:space:]]) ]]; then
+            common_groups+="$group "
+        fi
+    done
+
+    # Find unique groups for user1
+    local unique_groups_user1=""
+    for group in $groups_user1; do
+        if [[ ! $groups_user2 =~ (^|[[:space:]])$group($|[[:space:]]) ]]; then
+            unique_groups_user1+="$group "
+        fi
+    done
+
+    # Find unique groups for user2
+    local unique_groups_user2=""
+    for group in $groups_user2; do
+        if [[ ! $groups_user1 =~ (^|[[:space:]])$group($|[[:space:]]) ]]; then
+            unique_groups_user2+="$group "
+        fi
+    done
+
+    # Output the results
+    echo "Common groups:"
+    for group in $common_groups; do
+        echo "  $group"
+    done
+    echo ""
+
+    echo "Unique groups for $user1:"
+    for group in $unique_groups_user1; do
+        echo "  $group"
+    done
+    echo ""
+
+    echo "Unique groups for $user2:"
+    for group in $unique_groups_user2; do
+        echo "  $group"
+    done
+    echo ""
+}
+
+copy_groups() {
+    local source_user="${1:?source user is required}"
+    local target_user="${2:?target user is required}"
+
+    # Get the groups for each user
+    local groups_source_user=$(get_user_groups $source_user)
+    local groups_target_user=$(get_user_groups $target_user)
+
+    # Find unique groups for source user
+    local unique_groups_source_user=""
+    for group in $groups_source_user; do
+        if [[ ! $groups_target_user =~ (^|[[:space:]])$group($|[[:space:]]) ]]; then
+            unique_groups_source_user+="$group "
+        fi
+    done
+
+    # Check if there are any unique groups
+    if [[ -z $unique_groups_source_user ]]; then
+        echo "No unique groups to copy to $target_user"
+        exit 0
+    fi
+
+    # Add target user to each unique group of source user
+    for group in $unique_groups_source_user; do
+        echo "Adding $target_user to $group"
+        uaac member add "$group" "$target_user"
+    done
+
+    echo "Done."
+}
+
+main() {
+    local subcommand="${1:-}"
+    shift || true
+
+    case "$subcommand" in
+        login)
+            login
+            ;;
+        compare-groups)
+            compare_groups "$@"
+            ;;
+        copy-groups)
+            copy_groups "$@"
+            ;;
+        *)
+            usage_and_exit
+            ;;
+    esac
+}
+
+main "$@"
